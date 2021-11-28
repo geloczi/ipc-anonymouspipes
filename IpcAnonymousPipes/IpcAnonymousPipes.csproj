@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <DebugType>portable</DebugType>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/geloczigeri/ipc-pipes</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/geloczigeri/ipc-pipes</RepositoryUrl>
+    <PackageTags>ipc;pipes</PackageTags>
+    <Title>IpcAnonymousPipes</Title>
+	<Authors>geloczigeri</Authors>
+    <Company>GitHub</Company>
+    <Description>Lightweight library for duplex interprocess communication with anonymus pipes. No message length limitations. Can be used with any serialization library what outputs/accepts byte arrays.</Description>
+    <Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
+
+</Project>

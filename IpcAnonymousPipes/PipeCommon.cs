@@ -1,0 +1,284 @@
+﻿using System;
+using System.IO;
+using System.IO.Pipes;
+using System.Threading;
+
+namespace IpcAnonymousPipes
+{
+    /// <summary>
+    /// PipeCommon
+    /// </summary>
+    public abstract class PipeCommon
+    {
+        #region Fields
+        /// <summary>
+        /// Synchronization object
+        /// </summary>
+        protected readonly object _syncRoot = new object();
+
+        /// <summary>
+        /// Disposed
+        /// </summary>
+        protected bool _disposed;
+
+        /// <summary>
+        /// Method to call when data packet received
+        /// </summary>
+        protected Action<BlockingReadStream> _receiveAction;
+
+        private int _controlByte = 0;
+        #endregion Fields
+
+        #region Events
+        /// <summary>
+        /// Raised when an error occured.
+        /// </summary>
+        public event EventHandler<Exception> OnError;
+
+        /// <summary>
+        /// Raised when connected.
+        /// </summary>
+        public event EventHandler Connected;
+
+        /// <summary>
+        /// Raised when disconnected.
+        /// </summary>
+        public event EventHandler Disconnected;
+        #endregion Events
+
+        #region Properties
+        private bool _isConnected;
+        /// <summary>
+        /// Indicates wether this pipe is connected or not.
+        /// </summary>
+        public bool IsConnected
+        {
+            get => _isConnected && !_disposed;
+            protected set
+            {
+                if (_isConnected != value)
+                {
+                    _isConnected = value;
+                    if (IsConnected)
+                        RaiseConnected();
+                    else
+                        RaiseDisconnected();
+                }
+            }
+        }
+        #endregion Properties
+
+        #region Constructor
+        /// <summary>
+        /// New instance of PipeCommon
+        /// </summary>
+        /// <param name="receiveAction">Method to call when data packet received</param>
+        protected PipeCommon(Action<BlockingReadStream> receiveAction)
+        {
+            _receiveAction = receiveAction;
+        }
+        #endregion Constructor
+
+        #region Public Methods
+        /// <summary>
+        /// Sends the specified byte array into the pipe.
+        /// </summary>
+        /// <param name="data"></param>
+        public abstract void Send(byte[] data);
+
+        /// <summary>
+        /// Blocks the calling thread until all data transmission finishes.
+        ///  With this method, you can ensure that all data have arrived before disposing the pipe.
+        /// </summary>
+        public abstract void WaitForTransmissionEnd();
+        #endregion Public Methods
+
+        #region Protected Methods
+        /// <summary>
+        /// Checks connection.
+        /// </summary>
+        /// <returns></returns>
+        protected abstract bool PipesAreConnected();
+
+        /// <summary>
+        /// Sends disconnect control byte
+        /// </summary>
+        /// <param name="pipe"></param>
+        protected void SendDisconnect(PipeStream pipe)
+        {
+            lock (_syncRoot)
+            {
+                // Control byte
+                pipe.WriteByte(ControlByte.Disconnect);
+                pipe.Flush();
+            }
+        }
+
+        /// <summary>
+        /// Sends data packet
+        /// </summary>
+        /// <param name="pipe"></param>
+        /// <param name="data"></param>
+        /// <exception cref="Exception"></exception>
+        protected void SendData(PipeStream pipe, byte[] data)
+        {
+            lock (_syncRoot)
+            {
+                Ensure();
+                // Control byte
+                pipe.WriteByte(ControlByte.Data);
+                // Length bytes
+                var lengthBytes = BitConverter.GetBytes((int)data.Length);
+                if (lengthBytes.Length != 4)
+                    throw new Exception($"BitConverter.GetBytes returned unexpected number of bytes: {lengthBytes.Length}");
+                pipe.Write(lengthBytes, 0, 4);
+                // Data bytes
+                pipe.Write(data, 0, data.Length);
+                pipe.Flush();
+                pipe.WaitForPipeDrain();
+            }
+        }
+
+        /// <summary>
+        /// Raises the OnError event
+        /// </summary>
+        /// <param name="ex"></param>
+        protected void RaiseOnError(Exception ex)
+        {
+            if (!(OnError is null))
+                OnError(this, ex);
+        }
+
+        /// <summary>
+        /// Receiver loop, reads data from the pipe
+        /// </summary>
+        /// <param name="pipe"></param>
+        protected void ReceiverMethod(PipeStream pipe)
+        {
+            try
+            {
+                var buffer = new byte[4096];
+                while (!_disposed && pipe.IsConnected)
+                {
+                    _controlByte = pipe.ReadByte();
+                    if (_controlByte < 0 || _controlByte == ControlByte.Disconnect)
+                    {
+                        // Disconnect
+                        break;
+                    }
+                    else if (_controlByte == ControlByte.Data)
+                    {
+                        // Data packet, read length
+                        EnsureRead(pipe, buffer, 0, 4);
+                        int length = BitConverter.ToInt32(buffer, 0);
+
+                        // Read data bytes
+                        var blockingReadStream = new BlockingReadStream(pipe, length);
+                        if (!(_receiveAction is null))
+                        {
+                            // The receive action will perform the read operation using the BlockingReadStream which wraps around our pipe.
+                            try
+                            {
+                                _receiveAction(blockingReadStream);
+                            }
+                            catch (Exception ex)
+                            {
+                                RaiseOnError(ex);
+                            }
+                        }
+                        // Drop remaining data bytes in the case the receive action didn't finish reading for any reason.
+                        blockingReadStream.ReadToEndDropBytes();
+                    }
+                    _controlByte = 0; //Flip the internal state back to zero after a transmit
+                }
+                IsConnected = false;
+            }
+            catch (ThreadAbortException) { }
+            catch (Exception ex)
+            {
+                RaiseOnError(ex);
+            }
+        }
+
+        /// <summary>
+        /// Waits for data transmission end.
+        /// </summary>
+        protected void WaitForReceive()
+        {
+            while (_controlByte >= ControlByte.Data)
+                Thread.Sleep(1);
+
+        }
+
+        /// <summary>
+        /// Ensures the connection.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="IOException"></exception>
+        protected void Ensure()
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(GetType().FullName);
+            if (!PipesAreConnected())
+                throw new IOException("Pipes are broken.");
+        }
+        #endregion Protected Methods
+
+        #region Private Methods
+        private void RaiseConnected()
+        {
+            if (!(Connected is null))
+                Connected(this, new EventArgs());
+        }
+
+        private void RaiseDisconnected()
+        {
+            if (!(Disconnected is null))
+                Disconnected(this, new EventArgs());
+        }
+
+        /// <summary>
+        /// Reads exactly the specified amount of bytes from the stream (count). 
+        /// It will block the caller thread when there is not enough data and will wait to get all the bytes from the stream.
+        /// </summary>
+        /// <param name="stream">Source stream to read.</param>
+        /// <param name="buffer">Buffer to write.</param>
+        /// <param name="offset">Buffer offset.</param>
+        /// <param name="count">Number of bytes to read.</param>
+        private static void EnsureRead(Stream stream, byte[] buffer, int offset, int count)
+        {
+            int read;
+            while (count > 0)
+            {
+                read = stream.Read(buffer, offset, count);
+                offset += read;
+                count -= read;
+            }
+        }
+        #endregion Private Methods
+
+        #region Classes
+        /// <summary>
+        /// Message header is a control byte which defines the current operation.
+        /// </summary>
+        protected static class ControlByte
+        {
+            /// <summary>
+            /// Connection established, ready to receive.
+            /// </summary>
+            public const byte Connect = 1;
+
+            /// <summary>
+            /// Connection closed, stop transmission.
+            /// </summary>
+            public const byte Disconnect = 2;
+
+            /// <summary>
+            /// Data packet is being sent.
+            /// </summary>
+            public const byte Data = 100;
+        }
+        #endregion
+
+    }
+}

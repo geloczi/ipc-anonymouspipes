@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\IpcAnonymousPipes\IpcAnonymousPipes.csproj" />
+    <ProjectReference Include="..\ClientWpfApp\ClientWpfApp.csproj" />
+  </ItemGroup>
+
+</Project>
