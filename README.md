@@ -1,4 +1,4 @@
-# ipc-anonymouspipes
+# IpcAnonymousPipes
 Interprocess communication using anonymus pipes. 
 The goal of this project is to provide a simple framework to send and receive bytes using anonymus pipes.   
 
@@ -8,6 +8,13 @@ The goal of this project is to provide a simple framework to send and receive by
 - One-to-one duplex communication
 - Unlimited data length
 - Can be used with any serialization library what outputs/accepts byte arrays
+
+## NuGet package
+[Nuget package available on nuget.org](https://www.nuget.org/packages/IpcAnonymousPipes/)
+
+```
+Install-Package IpcAnonymousPipes
+```
 
 # Usage
 
