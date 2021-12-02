@@ -193,7 +193,7 @@ namespace IpcAnonymousPipes.Tests
                 // Start pipes
                 _server.RunAsync();
                 _client.RunAsync();
-                _server.EnsureConnection(TimeSpan.FromSeconds(1));
+                _server.WaitForClient(TimeSpan.FromSeconds(1));
 
                 // Execute test transmission
                 options.TransmitAction(new LocalTransmissionTestParams()

@@ -118,12 +118,14 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Wait until connection established
+        /// Blocks the caller until client gets connected.
         /// </summary>
-        /// <param name="timeout"></param>
-        /// <exception cref="TimeoutException"></exception>
-        /// <exception cref="Exception"></exception>
-        public void EnsureConnection(TimeSpan timeout)
+        /// <param name="timeout">Maximum amount of time to wait for the client.</param>
+        /// <exception cref="TimeoutException">Thrown when the client fails to connect in the specified amount of time.</exception>
+        /// <exception cref="Exception">Thrown on unknown connection failure.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed during the waiting.</exception>
+        /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
+        public void WaitForClient(TimeSpan timeout)
         {
             Ensure();
             var sw = new Stopwatch();
@@ -136,7 +138,7 @@ namespace IpcAnonymousPipes
             }
             Ensure();
             if (!IsConnected)
-                throw new Exception("Pipe client failed to connect.");
+                throw new Exception("Failed to connect.");
         }
 
         /// <summary>
