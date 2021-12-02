@@ -13,6 +13,7 @@
 		<Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageVersion>1.1.0</PackageVersion>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
