@@ -1,24 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <DebugType>portable</DebugType>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageProjectUrl>https://github.com/geloczigeri/ipc-anonymouspipes</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/geloczigeri/ipc-anonymouspipes</RepositoryUrl>
-    <PackageTags>ipc;pipes</PackageTags>
-    <Title>IpcAnonymousPipes</Title>
-	<Authors>Gergő Gelóczi</Authors>
-    <Company>GitHub</Company>
-    <Description>Lightweight library for duplex interprocess communication with anonymus pipes. No message length limitations. Can be used with any serialization library what outputs/accepts byte arrays.</Description>
-    <Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	  <PackageVersion>1.0.2</PackageVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageProjectUrl>https://github.com/geloczigeri/ipc-anonymouspipes</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/geloczigeri/ipc-anonymouspipes</RepositoryUrl>
+		<PackageTags>ipc;pipes;anonymuspipes;interprocesscommunication</PackageTags>
+		<Title>IpcAnonymousPipes</Title>
+		<Authors>Gergő Gelóczi</Authors>
+		<Description>Lightweight library for duplex interprocess communication with anonymus pipes. No message length limitations. Can be used with any serialization library, since it sends/receives byte arrays.</Description>
+		<Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageVersion>1.1.0</PackageVersion>
+	</PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DebugType>none</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+		<Optimize>True</Optimize>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
 
 </Project>

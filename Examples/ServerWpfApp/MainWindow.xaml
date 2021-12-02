@@ -17,6 +17,9 @@
             <Style TargetType="RichTextBox">
                 <Setter Property="Margin" Value="5"/>
             </Style>
+            <Style TargetType="{x:Type Paragraph}">
+                <Setter Property="Margin" Value="0"/>
+            </Style>
         </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>

@@ -31,7 +31,7 @@ void StartServer()
     
     // Wait for client connection
     // This will wait for maximum 5 seconds, then it throws a TimeoutException if the client is still not connected.
-    pipeServer.EnsureConnection(TimeSpan.FromSeconds(5));
+    pipeServer.WaitForClient(TimeSpan.FromSeconds(5));
     
     // Say Hi to the client
     pipeServer.Send(Encoding.UTF8.GetBytes("Hi!"));
@@ -71,3 +71,24 @@ static void ReceiveAction(BlockingReadStream stream)
     Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
 }
 ```
+
+## Example applications
+
+I included two WPF applications just to demonstrate the communication between the server and the client.  
+Download the source and build the solution. Then you can start the 
+[ServerWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
+project. The client
+[ClientWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
+will be started automatically and you can start sending in messages. 
+
+### References and application domains
+
+The ServerWpfApp project does not reference ClientWpfApp project, they are completely independent from each other.
+My goal was to run the client in an independent **standalone process**, so it lives in a **different Application Domain**. 
+
+## Background
+This is about my personal motivation to write this project.  
+I had a scenario when I had to separate an audio processor component into a standalone process, because the 3rd party library I used (CScore) caused extreme garbage collector behaviour which ended up in GUI lagging and freezes.
+So **separation of the heavy audio processing into a standalone process away from the GUI process** made perfect sense. 
+Later I also moved the **audio playback service** into a standalone process, and the **buffering was done with anonymus pipes**. 
+Thanks to this separation, the **audio playback was smooth** and cotninuous, the GUI also becaome perfectly smooth, and the **heavy audio conversion process** could do whatever it wanted, it **could not affect anything else** anymore since it lived in it's standalone **Application Domain**.

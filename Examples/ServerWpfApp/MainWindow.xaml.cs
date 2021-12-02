@@ -1,6 +1,7 @@
 ﻿using IpcAnonymousPipes;
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 
@@ -11,6 +12,13 @@ namespace ServerWpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        // ServerWpfApp project does not reference ClientWpfApp. This is just to demonstrate they are totally independent in 2 different AppDomains.
+#if DEBUG
+        const string ClientWpfAppPath = @"..\..\..\..\ClientWpfApp\bin\Debug\netcoreapp3.1\ClientWpfApp.exe";
+#else
+        const string ClientWpfAppPath = @"..\..\..\..\ClientWpfApp\bin\Release\netcoreapp3.1\ClientWpfApp.exe";
+#endif
+
         PipeServer pipeServer;
 
         public MainWindow()
@@ -18,10 +26,19 @@ namespace ServerWpfApp
             InitializeComponent();
             Closed += MainWindow_Closed;
 
-            pipeServer = new PipeServer(ReceiveAction);
-            pipeServer.Disconnected += PipeServer_Disconnected;
-            Process.Start("ClientWpfApp.exe", string.Join(" ", pipeServer.ClientInputHandle, pipeServer.ClientOutputHandle));
-            pipeServer.RunAsync();
+            if (File.Exists(ClientWpfAppPath))
+            {
+                pipeServer = new PipeServer(ReceiveAction);
+                pipeServer.Disconnected += PipeServer_Disconnected;
+                Process.Start(ClientWpfAppPath, string.Join(" ", pipeServer.ClientInputHandle, pipeServer.ClientOutputHandle));
+                pipeServer.RunAsync();
+                pipeServer.WaitForClient(TimeSpan.FromSeconds(15));
+            }
+            else
+            {
+                MessageBox.Show("Please build ClientWpfApp before starting ServerWpfApp!", "Build ClientWpfApp", MessageBoxButton.OK, MessageBoxImage.Error);
+                Environment.Exit(0);
+            }
         }
 
         private void PipeServer_Disconnected(object? sender, EventArgs e)
@@ -31,7 +48,7 @@ namespace ServerWpfApp
 
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
-            pipeServer.Dispose();
+            pipeServer?.Dispose();
         }
 
         private void ReceiveAction(BlockingReadStream stream)

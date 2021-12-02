@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\IpcAnonymousPipes\IpcAnonymousPipes.csproj" />
-    <ProjectReference Include="..\ClientWpfApp\ClientWpfApp.csproj" />
   </ItemGroup>
 
 </Project>
