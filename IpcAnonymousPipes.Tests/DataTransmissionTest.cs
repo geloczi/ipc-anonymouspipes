@@ -12,12 +12,6 @@ namespace IpcAnonymousPipes.Tests
     {
         private static readonly Random Rnd = new Random();
 
-        class LocalTransmissionTestParams
-        {
-            public Action<string> ServerSend { get; set; }
-            public Action<string> ClientSend { get; set; }
-        }
-
         [Test]
         [NonParallelizable]
         public void DuplexCommunicationTest()
@@ -138,13 +132,6 @@ namespace IpcAnonymousPipes.Tests
             });
         }
 
-        class LocalTransmissionTestOptions
-        {
-            public Action ClientReceiveHook;
-            public Action ServerReceiveHook;
-            public Action<LocalTransmissionTestParams> TransmitAction;
-        }
-
         /// <summary>
         /// The skeleton to execute a transmission test locally in the current Process. 
         /// Data checks are implemented here, you just have to write the custom transmission scenario using the method argument.
@@ -196,7 +183,7 @@ namespace IpcAnonymousPipes.Tests
                 _server.WaitForClient(TimeSpan.FromSeconds(1));
 
                 // Execute test transmission
-                options.TransmitAction(new LocalTransmissionTestParams()
+                options.TransmitAction(new TransmitActionArgs()
                 {
                     ServerSend = ServerSend,
                     ClientSend = ClientSend
@@ -221,5 +208,17 @@ namespace IpcAnonymousPipes.Tests
                 Assert.IsTrue(clientSent[i].SequenceEqual(serverReceived[i]));
         }
 
+        class TransmitActionArgs
+        {
+            public Action<string> ServerSend { get; set; }
+            public Action<string> ClientSend { get; set; }
+        }
+
+        class LocalTransmissionTestOptions
+        {
+            public Action ClientReceiveHook;
+            public Action ServerReceiveHook;
+            public Action<TransmitActionArgs> TransmitAction;
+        }
     }
 }
