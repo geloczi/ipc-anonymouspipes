@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using IpcAnonymousPipes.Tests.Mocks;
 using NUnit.Framework;
 
 namespace IpcAnonymousPipes.Tests
@@ -11,6 +12,32 @@ namespace IpcAnonymousPipes.Tests
     public class DataTransmissionTest
     {
         private static readonly Random Rnd = new Random();
+
+        [Test]
+        [NonParallelizable]
+        public void SendLongStream()
+        {
+            long dataLength = ((long)int.MaxValue) + 1;
+            void Receive(BlockingReadStream stream)
+            {
+                Assert.AreEqual(stream.Length, dataLength);
+            }
+
+            using (var server = new PipeServer(false, Receive))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle, null))
+            {
+                server.RunAsync();
+                //client.RunAsync(); // Not necessary, because we won't send data to the client.
+
+                server.WaitForClient(100);
+
+                // Client sends long stream
+                using (var stream = new ReadNothingStream(dataLength))
+                    client.Send(stream);
+
+                server.WaitForTransmissionEnd();
+            }
+        }
 
         [Test]
         [NonParallelizable]

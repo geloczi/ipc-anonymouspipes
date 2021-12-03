@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.IO.Pipes;
 using System.Threading;
 
@@ -61,9 +62,17 @@ namespace IpcAnonymousPipes
         /// <param name="data"></param>
         public override void Send(byte[] data)
         {
-            SendData(_outPipe, data);
+            SendBytes(_outPipe, data);
         }
 
+        /// <summary>
+        /// Sends bytes to the pipe
+        /// </summary>
+        /// <param name="stream"></param>
+        public override void Send(Stream stream)
+        {
+            SendStream(_outPipe, stream);
+        }
 
         /// <summary>
         /// Wait until pipes finish transmission
@@ -74,7 +83,7 @@ namespace IpcAnonymousPipes
             lock (_syncRoot)
             {
                 _outPipe.WaitForPipeDrain();
-                WaitForReceive();
+                WaitForReceiveOrSend();
             }
         }
 

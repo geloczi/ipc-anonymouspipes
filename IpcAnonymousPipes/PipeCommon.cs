@@ -11,6 +11,9 @@ namespace IpcAnonymousPipes
     public abstract class PipeCommon
     {
         #region Fields
+        private int _controlByte = 0;
+        private bool _isSending;
+
         /// <summary>
         /// Synchronization object
         /// </summary>
@@ -25,8 +28,6 @@ namespace IpcAnonymousPipes
         /// Method to call when data packet received
         /// </summary>
         protected Action<BlockingReadStream> _receiveAction;
-
-        private int _controlByte = 0;
         #endregion Fields
 
         #region Events
@@ -87,6 +88,12 @@ namespace IpcAnonymousPipes
         public abstract void Send(byte[] data);
 
         /// <summary>
+        /// Sends the specified stream into the pipe.
+        /// </summary>
+        /// <param name="stream"></param>
+        public abstract void Send(Stream stream);
+
+        /// <summary>
         /// Blocks the calling thread until all data transmission finishes.
         ///  With this method, you can ensure that all data have arrived before disposing the pipe.
         /// </summary>
@@ -119,23 +126,83 @@ namespace IpcAnonymousPipes
         /// </summary>
         /// <param name="pipe"></param>
         /// <param name="data"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="Exception"></exception>
-        protected void SendData(PipeStream pipe, byte[] data)
+        protected void SendBytes(PipeStream pipe, byte[] data)
         {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+            if (data.Length == 0)
+                return;
+
             lock (_syncRoot)
             {
-                Ensure();
-                // Control byte
-                pipe.WriteByte(ControlByte.Data);
-                // Length bytes
-                var lengthBytes = BitConverter.GetBytes((int)data.Length);
-                if (lengthBytes.Length != 4)
-                    throw new Exception($"BitConverter.GetBytes returned unexpected number of bytes: {lengthBytes.Length}");
-                pipe.Write(lengthBytes, 0, 4);
-                // Data bytes
-                pipe.Write(data, 0, data.Length);
-                pipe.Flush();
-                pipe.WaitForPipeDrain();
+                _isSending = true;
+                try
+                {
+                    Ensure();
+                    // Control byte
+                    pipe.WriteByte(ControlByte.Data);
+                    // Length bytes
+                    var lengthBytes = BitConverter.GetBytes((long)data.Length);
+                    if (lengthBytes.Length != 8)
+                        throw new Exception($"BitConverter.GetBytes returned unexpected number of bytes: {lengthBytes.Length}");
+                    pipe.Write(lengthBytes, 0, lengthBytes.Length);
+                    // Data bytes
+                    pipe.Write(data, 0, data.Length);
+                    pipe.Flush();
+                    pipe.WaitForPipeDrain();
+                }
+                finally
+                {
+                    _isSending = false;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sends data packet
+        /// </summary>
+        /// <param name="pipe"></param>
+        /// <param name="stream"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="Exception"></exception>
+        protected void SendStream(PipeStream pipe, Stream stream)
+        {
+            if (stream is null)
+                throw new ArgumentNullException(nameof(stream));
+            if (stream.Length <= 0)
+                return;
+
+            lock (_syncRoot)
+            {
+                _isSending = true;
+                try
+                {
+                    Ensure();
+                    // Control byte
+                    pipe.WriteByte(ControlByte.Data);
+                    // Length bytes
+                    var lengthBytes = BitConverter.GetBytes((long)stream.Length);
+                    if (lengthBytes.Length != 8)
+                        throw new Exception($"BitConverter.GetBytes returned unexpected number of bytes: {lengthBytes.Length}");
+                    pipe.Write(lengthBytes, 0, lengthBytes.Length);
+
+                    // Data bytes
+                    stream.CopyTo(pipe); 
+                    //var buffer = new byte[1024 * 64];
+                    //while (stream.Position < stream.Length)
+                    //{
+                    //    int read = stream.Read(buffer, 0, buffer.Length);
+                    //    pipe.Write(buffer, 0, read);
+                    //    pipe.Flush();
+                    //    pipe.WaitForPipeDrain();
+                    //}
+                }
+                finally
+                {
+                    _isSending = false;
+                }
             }
         }
 
@@ -169,8 +236,8 @@ namespace IpcAnonymousPipes
                     else if (_controlByte == ControlByte.Data)
                     {
                         // Data packet, read length
-                        EnsureRead(pipe, buffer, 0, 4);
-                        int length = BitConverter.ToInt32(buffer, 0);
+                        EnsureRead(pipe, buffer, 0, 8);
+                        long length = BitConverter.ToInt64(buffer, 0);
 
                         // Read data bytes
                         var blockingReadStream = new BlockingReadStream(pipe, length);
@@ -203,11 +270,10 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Waits for data transmission end.
         /// </summary>
-        protected void WaitForReceive()
+        protected void WaitForReceiveOrSend()
         {
-            while (_controlByte >= ControlByte.Data)
+            while (_controlByte >= ControlByte.Data || _isSending)
                 Thread.Sleep(1);
-
         }
 
         /// <summary>

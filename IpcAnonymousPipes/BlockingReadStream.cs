@@ -43,7 +43,7 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Number of bytes to read.
         /// </summary>
-        public int RemainingBytes => (int)(Length - Position);
+        public long RemainingBytes => (long)(Length - Position);
 
         /// <summary>
         /// Creates a new instance of BlockingReadStream
@@ -87,9 +87,18 @@ namespace IpcAnonymousPipes
             if (RemainingBytes == 0)
                 throw new EndOfStreamException();
             if (count > RemainingBytes)
-                count = RemainingBytes;
-            
-            BlockingRead(buffer, offset, count);
+                count = (int)RemainingBytes;
+
+            int readPosition = offset;
+            int readOffset = count;
+            int read;
+            while (readOffset > 0)
+            {
+                read = _stream.Read(buffer, readPosition, readOffset);
+                readPosition += read;
+                readOffset -= read;
+            }
+
             _position += count;
             return count;
         }
@@ -102,8 +111,10 @@ namespace IpcAnonymousPipes
         {
             if (RemainingBytes == 0)
                 return new byte[0];
+            if (RemainingBytes > int.MaxValue)
+                throw new NotSupportedException("The stream is too long to read it into a byte array.");
             byte[] data = new byte[RemainingBytes];
-            Read(data, 0, RemainingBytes);
+            Read(data, 0, (int)RemainingBytes);
             return data;
         }
 
@@ -151,24 +162,6 @@ namespace IpcAnonymousPipes
         public override void Write(byte[] buffer, int offset, int count)
         {
             throw new NotSupportedException();
-        }
-
-        /// <summary>
-        /// Reads exactly the specified amount of bytes from the stream (count). 
-        /// It will block the caller thread when there is not enough data and will wait to get all the bytes from the stream.
-        /// </summary>
-        /// <param name="buffer">Buffer to write.</param>
-        /// <param name="offset">Buffer offset.</param>
-        /// <param name="count">Number of bytes to read.</param>
-        private void BlockingRead(byte[] buffer, int offset, int count)
-        {
-            int read;
-            while (count > 0)
-            {
-                read = _stream.Read(buffer, offset, count);
-                offset += read;
-                count -= read;
-            }
         }
     }
 }

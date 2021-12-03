@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace IpcAnonymousPipes.Tests
@@ -16,11 +11,11 @@ namespace IpcAnonymousPipes.Tests
         [NonParallelizable]
         public void WaitForClient_Handles()
         {
-            using (var server = new PipeServer(_ => { }))
+            using (var server = new PipeServer(null))
             {
                 try
                 {
-                    server.WaitForClient(TimeSpan.FromMilliseconds(10));
+                    server.WaitForClient(10);
                     Assert.Fail($"Expected {nameof(TimeoutException)}");
                 }
                 catch (TimeoutException tex)
@@ -37,7 +32,7 @@ namespace IpcAnonymousPipes.Tests
             Exception exFromWaitForClient = null;
 
             // 1. Create pipe
-            using (var server = new PipeServer(_ => { }))
+            using (var server = new PipeServer(null))
             {
                 // 2. This thread will be blocked on WaitForClient
                 var waitThread = new Thread(() =>
@@ -45,7 +40,7 @@ namespace IpcAnonymousPipes.Tests
                     try
                     {
                         // 4. This thread will be blocked here until server.Dispose() call
-                        server.WaitForClient(TimeSpan.FromSeconds(1));
+                        server.WaitForClient(1000);
                     }
                     catch (Exception ex)
                     {
@@ -73,11 +68,11 @@ namespace IpcAnonymousPipes.Tests
         [NonParallelizable]
         public void WaitForClient_TimeoutTest()
         {
-            using (var server = new PipeServer(_ => { }))
+            using (var server = new PipeServer(null))
             {
                 try
                 {
-                    server.WaitForClient(TimeSpan.FromMilliseconds(10));
+                    server.WaitForClient(10);
                     Assert.Fail($"Expected {nameof(TimeoutException)}");
                 }
                 catch (TimeoutException tex)
@@ -89,18 +84,28 @@ namespace IpcAnonymousPipes.Tests
 
         //[Test]
         //[NonParallelizable]
-        //public void WaitForClient_TimeoutTest()
+        //public void WaitForTransmissionEnd()
         //{
-        //    // Test IPC using two Threads in the current Process
-        //    using (var _server = new PipeServer(false, _ => { }))
-        //    using (var _client = new PipeClient(_server.ClientInputHandle, _server.ClientOutputHandle, _ => { }))
+        //    void Client_Receive(BlockingReadStream stream)
         //    {
-        //        // Start pipes
-        //        _server.RunAsync();
-        //        _client.RunAsync();
-        //        _server.WaitForClient(TimeSpan.FromSeconds(1));
+        //        Thread.Sleep(1000);
+        //    }
 
-        //        // Wait until transmission finishes
+        //    using (var server = new PipeServer(false, _ => { }))
+        //    using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle, Client_Receive))
+        //    {
+        //        server.RunAsync();
+        //        client.RunAsync();
+        //        server.WaitForClient(100);
+
+        //        var sendThread = new Thread(() =>
+        //        {
+        //            server.Send(new byte[100]);
+        //        });
+        //        sendThread.IsBackground = true;
+        //        sendThread.Start();
+
+        //        server.WaitForTransmissionEnd();
 
         //    }
         //}

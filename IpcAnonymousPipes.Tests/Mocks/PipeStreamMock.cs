@@ -3,7 +3,7 @@ using System.IO;
 
 namespace IpcAnonymousPipes.Tests.Mocks
 {
-    public class PipeStreamMock : Stream
+    class PipeStreamMock : Stream
     {
         private byte _nextValue;
         private long _position;

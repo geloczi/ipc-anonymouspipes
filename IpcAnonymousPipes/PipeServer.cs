@@ -101,7 +101,16 @@ namespace IpcAnonymousPipes
         /// <param name="data"></param>
         public override void Send(byte[] data)
         {
-            SendData(_outPipe, data);
+            SendBytes(_outPipe, data);
+        }
+
+        /// <summary>
+        /// Sends bytes to the pipe
+        /// </summary>
+        /// <param name="stream"></param>
+        public override void Send(Stream stream)
+        {
+            SendStream(_outPipe, stream);
         }
 
         /// <summary>
@@ -113,7 +122,7 @@ namespace IpcAnonymousPipes
             lock (_syncRoot)
             {
                 _outPipe.WaitForPipeDrain();
-                WaitForReceive();
+                WaitForReceiveOrSend();
             }
         }
 
@@ -139,6 +148,16 @@ namespace IpcAnonymousPipes
             if (!IsConnected)
                 throw new Exception("Failed to connect.");
         }
+
+        /// <summary>
+        /// Blocks the caller until client gets connected.
+        /// </summary>
+        /// <param name="milliseconds">Maximum amount of time in milliseconds to wait for the client.</param>
+        /// <exception cref="TimeoutException">Thrown when the client fails to connect in the specified amount of time.</exception>
+        /// <exception cref="Exception">Thrown on unknown connection failure.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed during the waiting.</exception>
+        /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
+        public void WaitForClient(int milliseconds) => WaitForClient(TimeSpan.FromMilliseconds(milliseconds));
 
         /// <summary>
         /// Disposes this instance
