@@ -80,9 +80,16 @@ namespace IpcAnonymousPipes
         /// <returns>Returns the number of bytes ridden from the stream.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
+            if (count == 0)
+                return 0;
+            if (count < 0)
+                throw new ArgumentOutOfRangeException(nameof(count));
+            if (RemainingBytes == 0)
+                throw new EndOfStreamException();
             if (count > RemainingBytes)
                 count = RemainingBytes;
-            BlockingRead(_stream, buffer, offset, count);
+            
+            BlockingRead(buffer, offset, count);
             _position += count;
             return count;
         }
@@ -150,16 +157,15 @@ namespace IpcAnonymousPipes
         /// Reads exactly the specified amount of bytes from the stream (count). 
         /// It will block the caller thread when there is not enough data and will wait to get all the bytes from the stream.
         /// </summary>
-        /// <param name="stream">Source stream to read.</param>
         /// <param name="buffer">Buffer to write.</param>
         /// <param name="offset">Buffer offset.</param>
         /// <param name="count">Number of bytes to read.</param>
-        public static void BlockingRead(Stream stream, byte[] buffer, int offset, int count)
+        private void BlockingRead(byte[] buffer, int offset, int count)
         {
             int read;
             while (count > 0)
             {
-                read = stream.Read(buffer, offset, count);
+                read = _stream.Read(buffer, offset, count);
                 offset += read;
                 count -= read;
             }

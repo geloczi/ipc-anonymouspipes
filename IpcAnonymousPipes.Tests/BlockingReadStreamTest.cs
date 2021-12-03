@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using IpcAnonymousPipes.Tests.Mocks;
 using NUnit.Framework;
 
 namespace IpcAnonymousPipes.Tests
@@ -11,7 +12,7 @@ namespace IpcAnonymousPipes.Tests
         [TestCase(10, 5)]
         [TestCase(11, 5)]
         [TestCase(1000, 9)]
-        public void BlockingReadStream_Read(int toRead, int maxBytesToRead)
+        public void Read(int toRead, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
             using (var prs = new BlockingReadStream(mock, toRead))
@@ -32,6 +33,63 @@ namespace IpcAnonymousPipes.Tests
             }
         }
 
+        [TestCase(0, -1)]
+        [TestCase(1, -1)]
+        public void Read_ArgumentOutOfRangeException(int streamLength, int toRead)
+        {
+            Exception exFromRead = null;
+            using (var prs = new BlockingReadStream(new PipeStreamMock(streamLength), streamLength))
+            {
+                try
+                {
+                    prs.Read(new byte[Math.Abs(toRead)], 0, toRead);
+                }
+                catch (Exception ex)
+                {
+                    exFromRead = ex;
+                }
+            }
+            Assert.IsInstanceOf<ArgumentOutOfRangeException>(exFromRead);
+        }
+
+        [TestCase]
+        public void Read_EndOfStreamException()
+        {
+            Exception exFromRead = null;
+            using (var prs = new BlockingReadStream(new PipeStreamMock(1), 1))
+            {
+                var buffer = new byte[1];
+                prs.Read(buffer, 0, 1);
+                try
+                {
+                    prs.Read(buffer, 0, 1);
+                }
+                catch (Exception ex)
+                {
+                    exFromRead = ex;
+                }
+            }
+            Assert.IsInstanceOf<EndOfStreamException>(exFromRead);
+        }
+
+        [TestCase]
+        public void Read_EndOfStreamException2()
+        {
+            Exception exFromRead = null;
+            using (var prs = new BlockingReadStream(new PipeStreamMock(1), 0))
+            {
+                try
+                {
+                    prs.Read(new byte[1], 0, 1);
+                }
+                catch (Exception ex)
+                {
+                    exFromRead = ex;
+                }
+            }
+            Assert.IsInstanceOf<EndOfStreamException>(exFromRead);
+        }
+
         [TestCase(0, 0, 1)]
         [TestCase(0, 1, 1)]
         [TestCase(1, 1, 1)]
@@ -40,7 +98,7 @@ namespace IpcAnonymousPipes.Tests
         [TestCase(0, 1000, 9)]
         [TestCase(999, 1000, 9)]
         [TestCase(1000, 1000, 9)]
-        public void BlockingReadStream_ReadToEnd(int readToEndFrom, int count, int maxBytesToRead)
+        public void ReadToEnd(int readToEndFrom, int count, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
             using (var prs = new BlockingReadStream(mock, count))
@@ -76,7 +134,7 @@ namespace IpcAnonymousPipes.Tests
         [TestCase(0, 1000, 9)]
         [TestCase(999, 1000, 9)]
         [TestCase(1000, 1000, 9)]
-        public void BlockingReadStream_ReadToEndDropBytes(int readToEndFrom, int count, int maxBytesToRead)
+        public void ReadToEndDropBytes(int readToEndFrom, int count, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
             using (var prs = new BlockingReadStream(mock, count))
@@ -95,7 +153,7 @@ namespace IpcAnonymousPipes.Tests
             }
         }
 
-        private void AssertBufferRunningValue(byte[] buffer, byte startValue, int offset, int count)
+        private static void AssertBufferRunningValue(byte[] buffer, byte startValue, int offset, int count)
         {
             for (int i = 0; i < count; i++)
             {
@@ -107,83 +165,10 @@ namespace IpcAnonymousPipes.Tests
             }
         }
 
-        private void AssertBuffer(byte[] buffer, byte pattern, int offset, int count)
+        private static void AssertBuffer(byte[] buffer, byte pattern, int offset, int count)
         {
             for (int i = 0; i < count; i++)
                 Assert.AreEqual(pattern, buffer[i + offset]);
-        }
-
-        class PipeStreamMock : Stream
-        {
-            private byte _nextValue;
-            private long _position;
-
-            public override bool CanRead => true;
-
-            public override bool CanSeek => false;
-
-            public override bool CanWrite => false;
-
-            public override long Length => 0;
-
-            public override long Position
-            {
-                get => _position;
-                set => throw new NotImplementedException();
-            }
-
-            public int MaxBytesToRead { get; set; }
-            public uint ReadCalls { get; private set; }
-
-            public PipeStreamMock(int maxBytesToRead)
-            {
-                MaxBytesToRead = maxBytesToRead;
-            }
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                if (buffer is null)
-                    throw new ArgumentNullException(nameof(buffer));
-                if (offset < 0)
-                    throw new ArgumentOutOfRangeException(nameof(offset));
-                if (count < 0)
-                    throw new ArgumentOutOfRangeException(nameof(count));
-
-                // Here is the thing. It is a real scenario that a stream can read _less_ number of bytes than requested.
-                // The following code snippet simulates this case.
-                ++ReadCalls;
-                int read = Math.Min(MaxBytesToRead, count);
-                for (int i = 0; i < read; i++)
-                {
-                    buffer[i + offset] = _nextValue;
-                    unchecked
-                    {
-                        ++_nextValue; // running value from 0 to 255
-                    }
-                }
-                _position += read;
-                return read;
-            }
-
-            public override void Flush()
-            {
-                throw new NotImplementedException();
-            }
-
-            public override long Seek(long offset, SeekOrigin origin)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void SetLength(long value)
-            {
-                throw new NotImplementedException();
-            }
-
-            public override void Write(byte[] buffer, int offset, int count)
-            {
-                throw new NotImplementedException();
-            }
         }
     }
 }
