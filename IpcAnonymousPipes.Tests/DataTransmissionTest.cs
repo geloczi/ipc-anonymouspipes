@@ -8,7 +8,7 @@ using NUnit.Framework;
 namespace IpcAnonymousPipes.Tests
 {
     [NonParallelizable]
-    public class PipeTests
+    public class DataTransmissionTest
     {
         private static readonly Random Rnd = new Random();
 
