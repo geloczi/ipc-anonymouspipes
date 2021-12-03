@@ -12,16 +12,14 @@ namespace IpcAnonymousPipes
     {
         private readonly AnonymousPipeClientStream _inPipe;
         private readonly AnonymousPipeClientStream _outPipe;
-        private Thread _workerThread;
 
         /// <summary>
         /// Creates a new instance of PipeClient
         /// </summary>
         /// <param name="inputPipeHandle"></param>
         /// <param name="outputPipeHandle"></param>
-        /// <param name="receiveAction"></param>
-        public PipeClient(string inputPipeHandle, string outputPipeHandle, Action<BlockingReadStream> receiveAction)
-            : base(receiveAction)
+        public PipeClient(string inputPipeHandle, string outputPipeHandle)
+            : base()
         {
             _inPipe = new AnonymousPipeClientStream(PipeDirection.In, inputPipeHandle);
             _outPipe = new AnonymousPipeClientStream(PipeDirection.Out, outputPipeHandle);
@@ -33,27 +31,12 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Runs the messaging on a new thread without blocking the caller.
-        /// </summary>
-        public void RunAsync()
-        {
-            Ensure();
-            _workerThread = new Thread(new ThreadStart(Run))
-            {
-                Name = nameof(PipeClient),
-                IsBackground = true
-            };
-            _workerThread.Start();
-        }
-
-        /// <summary>
         /// Runs the messaging on the current thread, so blocks until the pipe is closed.
         /// </summary>
-        public void Run()
+        protected override void ReceiveInternal()
         {
-            Ensure();
             _outPipe.WaitForPipeDrain(); // Make sure that the pipe server received the connect byte
-            ReceiverMethod(_inPipe);
+            ReceiverLoop(_inPipe);
         }
 
         /// <summary>

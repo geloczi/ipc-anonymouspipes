@@ -14,7 +14,6 @@ namespace IpcAnonymousPipes
         private readonly bool _disposeLocalCopyOfHandlesAfterClientConnected;
         private readonly AnonymousPipeServerStream _inPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         private readonly AnonymousPipeServerStream _outPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
-        private Thread _workerThread;
 
         /// <summary>
         /// This is "PipeDirection.Out" for the client
@@ -29,7 +28,7 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Creates a server instance
         /// </summary>
-        public PipeServer(Action<BlockingReadStream> receiveAction) : this(true, receiveAction)
+        public PipeServer() : this(true)
         {
         }
 
@@ -37,9 +36,8 @@ namespace IpcAnonymousPipes
         /// Creates a server instance
         /// </summary>
         /// <param name="disposeLocalCopyOfHandlesAfterClientConnect">True to dispose the local copy of handles after the pipe client is connected. False to keep the handles, so you can use the server and client in the same Process (for example: inter-thread communication, unit testing)</param>
-        /// <param name="receiveAction">Method to call when data packet received</param>
-        public PipeServer(bool disposeLocalCopyOfHandlesAfterClientConnect, Action<BlockingReadStream> receiveAction)
-            : base(receiveAction)
+        public PipeServer(bool disposeLocalCopyOfHandlesAfterClientConnect)
+            : base()
         {
             ClientOutputHandle = _inPipe.GetClientHandleAsString();
             ClientInputHandle = _outPipe.GetClientHandleAsString();
@@ -48,51 +46,37 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Runs the messaging on a new thread without blocking the caller.
-        /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
-        public void RunAsync()
-        {
-            Ensure();
-            if (!(_workerThread is null))
-                throw new InvalidOperationException("Server is running");
-
-            _workerThread = new Thread(new ThreadStart(Run))
-            {
-                Name = nameof(PipeServer),
-                IsBackground = true
-            };
-            _workerThread.Start();
-        }
-
-        /// <summary>
         /// Runs the messaging on the current thread, so blocks until the pipe is closed.
         /// </summary>
-        public void Run()
+        protected override void ReceiveInternal()
         {
-            Ensure();
-
-            // Read control byte from the client
-            // Blocks the thread until a control byte arrives
-            int control = _inPipe.ReadByte();
-            if (control == ControlByte.Connect)
+            if (ReadConnectByte())
             {
-                // Client is connected, we can dispose our local copy of the handles now
-                IsConnected = true;
-                if (_disposeLocalCopyOfHandlesAfterClientConnected)
-                {
-                    _inPipe.DisposeLocalCopyOfClientHandle();
-                    _outPipe.DisposeLocalCopyOfClientHandle();
-                }
-
-                // Receive messages
-                ReceiverMethod(_inPipe);
+                ReceiverLoop(_inPipe);
             }
             else
             {
                 // Somwething went wrong and the pipe cannot be used, so dispose it
                 Dispose();
             }
+        }
+
+        private bool ReadConnectByte()
+        {
+            // Read control byte from the client
+            // Blocks the thread until a control byte arrives
+            int control = _inPipe.ReadByte();
+
+            // Client sent something, so we can dispose our local copy of the handles now
+            if (_disposeLocalCopyOfHandlesAfterClientConnected)
+            {
+                _inPipe.DisposeLocalCopyOfClientHandle();
+                _outPipe.DisposeLocalCopyOfClientHandle();
+            }
+
+            // A connect byte is expected
+            IsConnected = control == ControlByte.Connect;
+            return IsConnected;
         }
 
         /// <summary>
@@ -129,25 +113,10 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Blocks the caller until client gets connected.
         /// </summary>
-        /// <param name="timeout">Maximum amount of time to wait for the client.</param>
-        /// <exception cref="TimeoutException">Thrown when the client fails to connect in the specified amount of time.</exception>
         /// <exception cref="Exception">Thrown on unknown connection failure.</exception>
         /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed during the waiting.</exception>
         /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
-        public void WaitForClient(TimeSpan timeout)
-        {
-            var sw = new Stopwatch();
-            sw.Start();
-            while (!IsConnected && !_disposed)
-            {
-                if (sw.Elapsed >= timeout)
-                    throw new TimeoutException("Pipe client failed to connect within the specified amount of time.");
-                Thread.Sleep(1);
-                Ensure();
-            }
-            if (!IsConnected)
-                throw new Exception("Failed to connect.");
-        }
+        public void WaitForClient() => WaitForClient(TimeSpan.Zero);
 
         /// <summary>
         /// Blocks the caller until client gets connected.
@@ -158,6 +127,39 @@ namespace IpcAnonymousPipes
         /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed during the waiting.</exception>
         /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
         public void WaitForClient(int milliseconds) => WaitForClient(TimeSpan.FromMilliseconds(milliseconds));
+
+        /// <summary>
+        /// Blocks the caller until client gets connected.
+        /// </summary>
+        /// <param name="timeout">Maximum amount of time to wait for the client.</param>
+        /// <exception cref="TimeoutException">Thrown when the client fails to connect in the specified amount of time.</exception>
+        /// <exception cref="Exception">Thrown on unknown connection failure.</exception>
+        /// <exception cref="ObjectDisposedException">Thrown when this instance has been disposed during the waiting.</exception>
+        /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
+        public void WaitForClient(TimeSpan timeout)
+        {
+            Ensure();
+            if (ReceiverStarted)
+            {
+                var sw = new Stopwatch();
+                sw.Start();
+                while (!IsConnected && !_disposed)
+                {
+                    if (timeout != TimeSpan.Zero && sw.Elapsed >= timeout)
+                        throw new TimeoutException("Pipe client failed to connect within the specified amount of time.");
+                    Thread.Sleep(1);
+                    Ensure();
+                }
+            }
+            else
+            {
+                if (timeout != TimeSpan.Zero)
+                    throw new ArgumentException($"Can't use timeout without calling {nameof(ReceiveAsync)} or {nameof(Receive)} first.", nameof(timeout));
+                ReadConnectByte();
+            }
+            if (!IsConnected)
+                throw new Exception("Failed to connect.");
+        }
 
         /// <summary>
         /// Disposes this instance

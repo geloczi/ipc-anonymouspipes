@@ -23,10 +23,10 @@ namespace IpcAnonymousPipes.Tests
                 Assert.AreEqual(stream.Length, dataLength);
             }
 
-            using (var server = new PipeServer(false, Receive))
-            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle, null))
+            using (var server = new PipeServer(false))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
             {
-                server.RunAsync();
+                server.ReceiveAsync(Receive);
                 //client.RunAsync(); // Not necessary, because we won't send data to the client.
 
                 server.WaitForClient(100);
@@ -41,7 +41,7 @@ namespace IpcAnonymousPipes.Tests
 
         [Test]
         [NonParallelizable]
-        public void DuplexCommunicationTest()
+        public void SimpleTest()
         {
             Console.WriteLine($"TEST: {nameof(DuplexCommunicationTest)}");
 
@@ -189,25 +189,25 @@ namespace IpcAnonymousPipes.Tests
             }
 
             // Test IPC using two Threads in the current Process
-            using (var _server = new PipeServer(false, Server_Receive)) // Do not dispose the pipe handles, because the client is runnin in the same Process.
-            using (var _client = new PipeClient(_server.ClientInputHandle, _server.ClientOutputHandle, Client_Receive))
+            using (var server = new PipeServer(false)) // Do not dispose the pipe handles, because the client is runnin in the same Process.
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
             {
                 // Local methods for data sending
                 void ServerSend(string data)
                 {
                     serverSent.Add(data);
-                    _server.Send(Encoding.UTF8.GetBytes(data));
+                    server.Send(Encoding.UTF8.GetBytes(data));
                 }
                 void ClientSend(string data)
                 {
                     clientSent.Add(data);
-                    _client.Send(Encoding.UTF8.GetBytes(data));
+                    client.Send(Encoding.UTF8.GetBytes(data));
                 }
 
                 // Start pipes
-                _server.RunAsync();
-                _client.RunAsync();
-                _server.WaitForClient(TimeSpan.FromSeconds(1));
+                server.ReceiveAsync(Server_Receive);
+                client.ReceiveAsync(Client_Receive);
+                server.WaitForClient(TimeSpan.FromSeconds(1));
 
                 // Execute test transmission
                 options.TransmitAction(new TransmitActionArgs()
@@ -217,8 +217,8 @@ namespace IpcAnonymousPipes.Tests
                 });
 
                 // Wait until transmission finishes
-                _server.WaitForTransmissionEnd();
-                _client.WaitForTransmissionEnd();
+                server.WaitForTransmissionEnd();
+                client.WaitForTransmissionEnd();
                 Console.WriteLine($"Transmission finished, pipes are drained.");
             }
 

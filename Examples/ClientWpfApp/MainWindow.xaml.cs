@@ -19,9 +19,9 @@ namespace ClientWpfApp
             Closed += MainWindow_Closed;
 
             var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
-            pipeClient = new PipeClient(args[0], args[1], ReceiveAction);
+            pipeClient = new PipeClient(args[0], args[1]);
             pipeClient.Disconnected += PipeClient_Disconnected;
-            pipeClient.RunAsync();
+            pipeClient.ReceiveAsync(ReceiveAction);
         }
 
         private void PipeClient_Disconnected(object sender, EventArgs e)

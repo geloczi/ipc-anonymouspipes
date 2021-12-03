@@ -28,10 +28,10 @@ namespace ServerWpfApp
 
             if (File.Exists(ClientWpfAppPath))
             {
-                pipeServer = new PipeServer(ReceiveAction);
+                pipeServer = new PipeServer();
                 pipeServer.Disconnected += PipeServer_Disconnected;
                 Process.Start(ClientWpfAppPath, string.Join(" ", pipeServer.ClientInputHandle, pipeServer.ClientOutputHandle));
-                pipeServer.RunAsync();
+                pipeServer.ReceiveAsync(ReceiveAction);
                 pipeServer.WaitForClient(TimeSpan.FromSeconds(15));
             }
             else

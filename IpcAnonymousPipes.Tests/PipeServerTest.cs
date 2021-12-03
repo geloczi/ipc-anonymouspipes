@@ -9,10 +9,34 @@ namespace IpcAnonymousPipes.Tests
     {
         [Test]
         [NonParallelizable]
-        public void WaitForClient_Handles()
+        public void SimplexServerToClient()
         {
-            using (var server = new PipeServer(null))
+            byte[] received = null;
+            using (var server = new PipeServer(false))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
             {
+                client.ReceiveAsync(s =>
+                {
+                    received = s.ReadToEnd();
+                });
+
+                // Calling client.RunAsync is not necessary in simplex communication.
+                server.WaitForClient();
+                server.Send(new byte[] { 255 });
+            }
+
+            Assert.IsNotNull(received);
+            Assert.IsTrue(received.Length > 0);
+            Assert.AreEqual(255, received[0]);
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void WaitForClient_TimeoutTest()
+        {
+            using (var server = new PipeServer())
+            {
+                server.ReceiveAsync(_ => { });
                 try
                 {
                     server.WaitForClient(10);
@@ -27,13 +51,15 @@ namespace IpcAnonymousPipes.Tests
 
         [Test]
         [NonParallelizable]
-        public void WaitForClient_TimeoutDisposeTest()
+        public void WaitForClient_DisposeTest()
         {
             Exception exFromWaitForClient = null;
 
             // 1. Create pipe
-            using (var server = new PipeServer(null))
+            using (var server = new PipeServer())
             {
+                server.ReceiveAsync(_ => { });
+
                 // 2. This thread will be blocked on WaitForClient
                 var waitThread = new Thread(() =>
                 {
@@ -66,48 +92,30 @@ namespace IpcAnonymousPipes.Tests
 
         [Test]
         [NonParallelizable]
-        public void WaitForClient_TimeoutTest()
+        public void WaitForTransmissionEnd()
         {
-            using (var server = new PipeServer(null))
+            byte[] received = null;
+            using (var server = new PipeServer(false))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
             {
-                try
+                server.ReceiveAsync(s =>
                 {
-                    server.WaitForClient(10);
-                    Assert.Fail($"Expected {nameof(TimeoutException)}");
-                }
-                catch (TimeoutException tex)
+                    Thread.Sleep(100);
+                    received = s.ReadToEnd();
+                });
+
+                var sendThread = new Thread(() =>
                 {
-                    Assert.AreEqual("Pipe client failed to connect within the specified amount of time.", tex.Message);
-                }
+                    client.Send(new byte[] { 255 });
+                });
+                sendThread.IsBackground = true;
+                sendThread.Start();
+                sendThread.Join();
+
+                server.WaitForTransmissionEnd();
             }
+            Assert.IsNotNull(received);
+            Assert.AreEqual(255, received[0]);
         }
-
-        //[Test]
-        //[NonParallelizable]
-        //public void WaitForTransmissionEnd()
-        //{
-        //    void Client_Receive(BlockingReadStream stream)
-        //    {
-        //        Thread.Sleep(1000);
-        //    }
-
-        //    using (var server = new PipeServer(false, _ => { }))
-        //    using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle, Client_Receive))
-        //    {
-        //        server.RunAsync();
-        //        client.RunAsync();
-        //        server.WaitForClient(100);
-
-        //        var sendThread = new Thread(() =>
-        //        {
-        //            server.Send(new byte[100]);
-        //        });
-        //        sendThread.IsBackground = true;
-        //        sendThread.Start();
-
-        //        server.WaitForTransmissionEnd();
-
-        //    }
-        //}
     }
 }

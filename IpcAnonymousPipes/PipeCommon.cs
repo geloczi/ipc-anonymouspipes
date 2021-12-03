@@ -13,6 +13,7 @@ namespace IpcAnonymousPipes
         #region Fields
         private int _controlByte = 0;
         private bool _isSending;
+        private Thread _receiverThread;
 
         /// <summary>
         /// Synchronization object
@@ -67,20 +68,60 @@ namespace IpcAnonymousPipes
                 }
             }
         }
+
+        /// <summary>
+        /// Indicates wether the receiver loop started or not.
+        /// </summary>
+        protected bool ReceiverStarted { get; private set; }
         #endregion Properties
 
         #region Constructor
         /// <summary>
         /// New instance of PipeCommon
         /// </summary>
-        /// <param name="receiveAction">Method to call when data packet received</param>
-        protected PipeCommon(Action<BlockingReadStream> receiveAction)
+        protected PipeCommon()
         {
-            _receiveAction = receiveAction;
         }
         #endregion Constructor
 
         #region Public Methods
+        /// <summary>
+        /// Run
+        /// </summary>
+        /// <param name="receiveAction">Method to call when data packet received</param>
+        public void Receive(Action<BlockingReadStream> receiveAction)
+        {
+            if (receiveAction is null)
+                throw new ArgumentNullException(nameof(receiveAction));
+            _receiveAction = receiveAction;
+            
+            Ensure();
+            ReceiverStarted = true;
+            ReceiveInternal();
+        }
+
+        /// <summary>
+        /// RunAsync
+        /// </summary>
+        /// <param name="receiveAction">Method to call when data packet received</param>
+        public void ReceiveAsync(Action<BlockingReadStream> receiveAction)
+        {
+            if (!(_receiverThread is null))
+                throw new InvalidOperationException("Server is running");
+            if (receiveAction is null)
+                throw new ArgumentNullException(nameof(receiveAction));
+            _receiveAction = receiveAction;
+
+            Ensure();
+            ReceiverStarted = true;
+            _receiverThread = new Thread(new ThreadStart(ReceiveInternal))
+            {
+                Name = nameof(PipeServer),
+                IsBackground = true
+            };
+            _receiverThread.Start();
+        }
+
         /// <summary>
         /// Sends the specified byte array into the pipe.
         /// </summary>
@@ -101,6 +142,12 @@ namespace IpcAnonymousPipes
         #endregion Public Methods
 
         #region Protected Methods
+
+        /// <summary>
+        /// The receiver method.
+        /// </summary>
+        protected abstract void ReceiveInternal();
+
         /// <summary>
         /// Checks connection.
         /// </summary>
@@ -189,7 +236,7 @@ namespace IpcAnonymousPipes
                     pipe.Write(lengthBytes, 0, lengthBytes.Length);
 
                     // Data bytes
-                    stream.CopyTo(pipe); 
+                    stream.CopyTo(pipe);
                     //var buffer = new byte[1024 * 64];
                     //while (stream.Position < stream.Length)
                     //{
@@ -220,7 +267,7 @@ namespace IpcAnonymousPipes
         /// Receiver loop, reads data from the pipe
         /// </summary>
         /// <param name="pipe"></param>
-        protected void ReceiverMethod(PipeStream pipe)
+        protected void ReceiverLoop(PipeStream pipe)
         {
             try
             {
