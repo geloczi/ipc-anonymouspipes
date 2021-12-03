@@ -127,16 +127,15 @@ namespace IpcAnonymousPipes
         /// <exception cref="IOException">Thrown when the pipes are broken.</exception>
         public void WaitForClient(TimeSpan timeout)
         {
-            Ensure();
             var sw = new Stopwatch();
             sw.Start();
             while (!IsConnected && !_disposed)
             {
                 if (sw.Elapsed >= timeout)
-                    throw new TimeoutException(nameof(PipeServer));
+                    throw new TimeoutException("Pipe client failed to connect within the specified amount of time.");
                 Thread.Sleep(1);
+                Ensure();
             }
-            Ensure();
             if (!IsConnected)
                 throw new Exception("Failed to connect.");
         }

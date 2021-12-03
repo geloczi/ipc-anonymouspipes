@@ -25,13 +25,13 @@ void StartServer()
 {
     // Create server pipe, then pass the pipe handles to the client via process arguments.
     pipeServer = new PipeServer(ReceiveAction);
-    Process.Start("ClientConsoleApp.exe", string.Join(" ", pipeServer.ClientInputHandle, pipeServer.ClientOutputHandle));
+    Process.Start("ClientConsoleApp.exe", $"{pipeServer.ClientInputHandle} {pipeServer.ClientOutputHandle}");
+    
     // Start listening for messages (on a background thread)
     pipeServer.RunAsync();
     
     // Wait for client connection
-    // This will wait for maximum 5 seconds, then it throws a TimeoutException if the client is still not connected.
-    pipeServer.WaitForClient(TimeSpan.FromSeconds(5));
+    pipeServer.WaitForClient();
     
     // Say Hi to the client
     pipeServer.Send(Encoding.UTF8.GetBytes("Hi!"));
@@ -54,7 +54,8 @@ static void Main(string[] args)
     using (var pipe = new PipeClient(args[0], args[1], ReceiveAction))
     {
         // Start listening for messages (on a background thread)
-        // Note: If you just want to receive messages, you can use the blocking pipe.Run() instead of pipe.RunAsync()
+        // Note: If you just want to receive messages, you can use the 
+        // blocking pipe.Run() instead of pipe.RunAsync()
         pipe.RunAsync();
         
         // Just type something into the console window and press ENTER
