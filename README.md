@@ -6,17 +6,18 @@ The goal of this project is to provide a simple framework to send and receive by
 - Lightweight and easy to use
 - Client-Server architecture
 - One-to-one duplex communication
-- Unlimited data length
-- Can be used with any serialization library what outputs/accepts byte arrays
+- Message length up to Int64.MaxValue
+- Send stream or byte array
+- Can be used with any serialization library what's working with streams or byte arrays.
 
-## [NuGet package](https://www.nuget.org/packages/IpcAnonymousPipes/)
+## Usage
+
+### [NuGet package](https://www.nuget.org/packages/IpcAnonymousPipes/)
 ```
 Install-Package IpcAnonymousPipes
 ```
 
-# Usage
-
-## PipeServer
+### PipeServer
 
 The server side PipeServer will create two anonymus pipes: input and output. The handles will be passed to the client app as process arguments.  
 
@@ -43,7 +44,7 @@ void StartServer()
 }
 ```
 
-## PipeClient
+### PipeClient
 
 This is a minimal client implementation with a console application.
 The Client will be disposed when the server sends a disconnect signal to this client.
@@ -70,14 +71,16 @@ static void Main(string[] args)
 
 ## Example applications
 
-You can find two **WPF applications** in the repository. 
+You can find two **WPF applications** in the [repository](https://github.com/geloczigeri/ipc-anonymouspipes). 
 I wrote them in order to demonstrate the **two-way communication** between the server and the client.  
 
 ### [ServerWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
 
 Download the source and build the solution. Then you can start the 
 [ServerWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
-project. 
+project.  
+The ServerWpfApp project **does not reference ClientWpfApp** project, they are completely independent from each other.
+My goal was to run the client inside a **standalone process**, so it **lives in it's own Application Domain**. 
 
 ### [ClientWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
 
@@ -85,15 +88,3 @@ The client
 [ClientWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
 will be started automatically by ServerWpfApp. 
 You can send messages by typing into the textbox and pressing the *Send* button.
-
-### References and application domains
-
-The ServerWpfApp project does not reference ClientWpfApp project, they are completely independent from each other.
-My goal was to run the client in an independent **standalone process**, so it lives in a **different Application Domain**. 
-
-## Background
-This is about my personal motivation to write this project.  
-I had a scenario when I had to separate an audio processor component into a standalone process, because the 3rd party library I used (CScore) caused extreme garbage collector behaviour which ended up in GUI lagging and freezes.
-So **separation of the heavy audio processing into a standalone process away from the GUI process** made perfect sense. 
-Later I also moved the **audio playback service** into a standalone process, and the **buffering was done with anonymus pipes**. 
-Thanks to this separation, the **audio playback was smooth** and cotninuous, the GUI also becaome perfectly smooth, and the **heavy audio conversion process** could do whatever it wanted, it **could not affect anything else** anymore since it lived in it's standalone **Application Domain**.
