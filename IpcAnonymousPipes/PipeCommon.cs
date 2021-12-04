@@ -16,6 +16,16 @@ namespace IpcAnonymousPipes
         private Thread _receiverThread;
 
         /// <summary>
+        /// Input pipe handle command line argument prefix.
+        /// </summary>
+        protected const string InPipeHandleArg = "--InPipeHandle=";
+
+        /// <summary>
+        /// Output pipe handle command line argument prefix.
+        /// </summary>
+        protected const string OutPipeHandleArg = "--OutPipeHandle=";
+
+        /// <summary>
         /// Synchronization object
         /// </summary>
         protected readonly object _syncRoot = new object();
@@ -74,15 +84,6 @@ namespace IpcAnonymousPipes
         /// </summary>
         protected bool ReceiverStarted { get; private set; }
         #endregion Properties
-
-        #region Constructor
-        /// <summary>
-        /// New instance of PipeCommon
-        /// </summary>
-        protected PipeCommon()
-        {
-        }
-        #endregion Constructor
 
         #region Public Methods
         /// <summary>

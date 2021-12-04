@@ -19,26 +19,45 @@ namespace ServerWpfApp
         const string ClientWpfAppPath = @"..\..\..\..\ClientWpfApp\bin\Release\netcoreapp3.1\ClientWpfApp.exe";
 #endif
 
-        PipeServer pipeServer;
+        PipeServer Server { get; }
 
         public MainWindow()
         {
             InitializeComponent();
             Closed += MainWindow_Closed;
+            IsEnabled = false;
 
             if (File.Exists(ClientWpfAppPath))
             {
-                pipeServer = new PipeServer();
-                pipeServer.Disconnected += PipeServer_Disconnected;
-                Process.Start(ClientWpfAppPath, string.Join(" ", pipeServer.ClientInputHandle, pipeServer.ClientOutputHandle));
-                pipeServer.ReceiveAsync(ReceiveAction);
-                pipeServer.WaitForClient(TimeSpan.FromSeconds(15));
+                // Create pipe server
+                Server = new PipeServer();
+                Server.Connected += PipeServer_Connected;
+                Server.Disconnected += PipeServer_Disconnected;
+
+                // Start client process with command line arguments
+                Process.Start(ClientWpfAppPath, Server.GetClientArgs());
+
+                // Receiving on background thread
+                Server.ReceiveAsync(stream =>
+                {
+                    string text = Encoding.UTF8.GetString(stream.ReadToEnd());
+                    Application.Current.Dispatcher.Invoke(() => log.AppendText(text + "\n"));
+                });
             }
             else
             {
                 MessageBox.Show("Please build ClientWpfApp before starting ServerWpfApp!", "Build ClientWpfApp", MessageBoxButton.OK, MessageBoxImage.Error);
                 Environment.Exit(0);
             }
+        }
+
+        private void PipeServer_Connected(object? sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                Title = Title.Replace(" (waiting for client...)", "");
+                IsEnabled = true;
+            }));
         }
 
         private void PipeServer_Disconnected(object? sender, EventArgs e)
@@ -48,18 +67,12 @@ namespace ServerWpfApp
 
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
-            pipeServer?.Dispose();
-        }
-
-        private void ReceiveAction(BlockingReadStream stream)
-        {
-            string text = Encoding.UTF8.GetString(stream.ReadToEnd());
-            Application.Current.Dispatcher.Invoke(() => log.AppendText(text + "\n"));
+            Server?.Dispose();
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            pipeServer.Send(Encoding.UTF8.GetBytes(messageToSend.Text));
+            Server.Send(Encoding.UTF8.GetBytes(messageToSend.Text));
         }
     }
 }

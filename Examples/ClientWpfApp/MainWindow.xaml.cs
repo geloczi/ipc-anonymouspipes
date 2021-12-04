@@ -1,8 +1,7 @@
-﻿using IpcAnonymousPipes;
-using System;
-using System.Linq;
+﻿using System;
 using System.Text;
 using System.Windows;
+using IpcAnonymousPipes;
 
 namespace ClientWpfApp
 {
@@ -11,17 +10,38 @@ namespace ClientWpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        PipeClient pipeClient;
+        PipeClient Client { get; }
 
         public MainWindow()
         {
             InitializeComponent();
             Closed += MainWindow_Closed;
 
-            var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
-            pipeClient = new PipeClient(args[0], args[1]);
-            pipeClient.Disconnected += PipeClient_Disconnected;
-            pipeClient.ReceiveAsync(ReceiveAction);
+            // If you want to debug comment out this line, rebuild the solution,
+            // start ServerWpfApp in debug mode, then attach the debugger to ClientWpfApp in 15 seconds
+            //System.Threading.Thread.Sleep(15000);
+
+            // Create pipe client
+            // The empty constructor parses command line arguments to get the pipe handles.
+            Client = new PipeClient();
+            Client.Disconnected += PipeClient_Disconnected;
+            Client.ReceiveAsync(ReceiveAction);
+
+
+            using (var Client = new PipeClient())
+            {
+                // Receiving on background thread
+                Client.ReceiveAsync(stream =>
+                {
+                    Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
+                });
+
+                // Read line from console, press ENTER to send
+                while (Client.IsConnected)
+                    Client.Send(Encoding.UTF8.GetBytes(Console.ReadLine()));
+
+                // The Client will be disposed when the server sends a disconnect signal to this client.
+            }
         }
 
         private void PipeClient_Disconnected(object sender, EventArgs e)
@@ -31,7 +51,7 @@ namespace ClientWpfApp
 
         private void MainWindow_Closed(object sender, EventArgs e)
         {
-            pipeClient.Dispose();
+            Client.Dispose();
         }
 
         private void ReceiveAction(BlockingReadStream stream)
@@ -42,7 +62,7 @@ namespace ClientWpfApp
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            pipeClient.Send(Encoding.UTF8.GetBytes(messageToSend.Text));
+            Client.Send(Encoding.UTF8.GetBytes(messageToSend.Text));
         }
     }
 }

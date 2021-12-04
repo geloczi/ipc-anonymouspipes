@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ServerWpfApp"
         mc:Ignorable="d"
-        Title="Server" Height="400" Width="400">
+        Title="Server (waiting for client...)" Height="400" Width="400">
     <Grid>
         <Grid.Resources>
             <Style TargetType="Button">

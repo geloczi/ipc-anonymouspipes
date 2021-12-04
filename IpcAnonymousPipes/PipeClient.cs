@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Threading;
 
 namespace IpcAnonymousPipes
@@ -14,12 +15,11 @@ namespace IpcAnonymousPipes
         private readonly AnonymousPipeClientStream _outPipe;
 
         /// <summary>
-        /// Creates a new instance of PipeClient
+        /// Creates a new instance of PipeClient.
         /// </summary>
         /// <param name="inputPipeHandle"></param>
         /// <param name="outputPipeHandle"></param>
         public PipeClient(string inputPipeHandle, string outputPipeHandle)
-            : base()
         {
             _inPipe = new AnonymousPipeClientStream(PipeDirection.In, inputPipeHandle);
             _outPipe = new AnonymousPipeClientStream(PipeDirection.Out, outputPipeHandle);
@@ -31,12 +31,11 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Runs the messaging on the current thread, so blocks until the pipe is closed.
+        /// Creates a new instance of PipeClient. Parses pipe handles automatically from the command line arguments.
         /// </summary>
-        protected override void ReceiveInternal()
+        public PipeClient()
+            : this(ParseCommandLineArg(InPipeHandleArg), ParseCommandLineArg(OutPipeHandleArg))
         {
-            _outPipe.WaitForPipeDrain(); // Make sure that the pipe server received the connect byte
-            ReceiverLoop(_inPipe);
         }
 
         /// <summary>
@@ -98,6 +97,29 @@ namespace IpcAnonymousPipes
         protected override bool PipesAreConnected()
         {
             return _inPipe?.IsConnected == true && _outPipe?.IsConnected == true;
+        }
+
+        /// <summary>
+        /// Runs the messaging on the current thread, so blocks until the pipe is closed.
+        /// </summary>
+        protected override void ReceiveInternal()
+        {
+            _outPipe.WaitForPipeDrain(); // Make sure that the pipe server received the connect byte
+            ReceiverLoop(_inPipe);
+        }
+
+        private static string ParseCommandLineArg(string prefix)
+        {
+            try
+            {
+                var args = Environment.GetCommandLineArgs();
+                string value = args.First(x => x.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Remove(0, prefix.Length);
+                return value;
+            }
+            catch
+            {
+                throw new ArgumentException($"Cannot parse command line argument: {prefix}");
+            }
         }
     }
 }

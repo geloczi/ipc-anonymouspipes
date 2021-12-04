@@ -38,13 +38,18 @@ namespace IpcAnonymousPipes
         /// </summary>
         /// <param name="disposeLocalCopyOfHandlesAfterClientConnect">True to dispose the local copy of handles after the pipe client is connected. False to keep the handles, so you can use the server and client in the same Process (for example: inter-thread communication, unit testing)</param>
         public PipeServer(bool disposeLocalCopyOfHandlesAfterClientConnect)
-            : base()
         {
             ClientOutputHandle = _inPipe.GetClientHandleAsString();
             ClientInputHandle = _outPipe.GetClientHandleAsString();
             _disposeLocalCopyOfHandlesAfterClientConnected = disposeLocalCopyOfHandlesAfterClientConnect;
             // At this point, the pipe exists and the client side can connect with the handles
         }
+
+        /// <summary>
+        /// Gets the command line arguments to pass to the client process.
+        /// </summary>
+        /// <returns>Returns a string which contains the client command line arguments.</returns>
+        public string GetClientArgs() => $"{InPipeHandleArg}{ClientInputHandle} {OutPipeHandleArg}{ClientOutputHandle}";
 
         /// <summary>
         /// Runs the messaging on the current thread, so blocks until the pipe is closed.

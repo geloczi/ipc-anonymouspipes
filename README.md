@@ -23,64 +23,68 @@ The server side PipeServer will create two anonymus pipes: input and output. The
 ```
 void StartServer()
 {
-    // Create server pipe, then pass the pipe handles to the client via process arguments.
-    pipeServer = new PipeServer(ReceiveAction);
-    Process.Start("ClientConsoleApp.exe", $"{pipeServer.ClientInputHandle} {pipeServer.ClientOutputHandle}");
+    // Create pipe server
+    Server = new PipeServer();
     
-    // Start listening for messages (on a background thread)
-    pipeServer.RunAsync();
+    // Start client process with command line arguments
+    Process.Start("MyClient.exe", Server.GetClientArgs());
+    
+    // Receiving on background thread
+    Server.ReceiveAsync(stream =>
+    {
+        Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
+    });
     
     // Wait for client connection
-    pipeServer.WaitForClient();
+    Server.WaitForClient();
     
     // Say Hi to the client
-    pipeServer.Send(Encoding.UTF8.GetBytes("Hi!"));
-}
-
-void ServerReceiveAction(BlockingReadStream stream)
-{
-    Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
+    Server.Send(Encoding.UTF8.GetBytes("Hi!"));
 }
 ```
 
 ## PipeClient
 
 This is a minimal client implementation with a console application.
+The Client will be disposed when the server sends a disconnect signal to this client.
 
 ```
 static void Main(string[] args)
 {
-    // Create client pipe using the handles from the arguments
-    using (var pipe = new PipeClient(args[0], args[1], ReceiveAction))
+    // Create pipe client
+    // The empty constructor parses command line arguments to get the pipe handles.
+    using (var Client = new PipeClient())
     {
-        // Start listening for messages (on a background thread)
-        // Note: If you just want to receive messages, you can use the 
-        // blocking pipe.Run() instead of pipe.RunAsync()
-        pipe.RunAsync();
-        
-        // Just type something into the console window and press ENTER
-        while (pipe.IsConnected)
-            pipe.Send(Encoding.UTF8.GetBytes(Console.ReadLine()));
-            
-        // The pipe will be disposed when the server sends a disconnect signal to this client.
-    }
-}
+        // Receiving on background thread
+        Client.ReceiveAsync(stream =>
+        {
+            Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
+        });
 
-static void ReceiveAction(BlockingReadStream stream)
-{
-    // Write received messages to the console
-    Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
+        // Read line from console, press ENTER to send
+        while (Client.IsConnected)
+            Client.Send(Encoding.UTF8.GetBytes(Console.ReadLine()));
+    }
 }
 ```
 
 ## Example applications
 
-I included two WPF applications just to demonstrate the communication between the server and the client.  
+You can find two **WPF applications** in the repository. 
+I wrote them in order to demonstrate the **two-way communication** between the server and the client.  
+
+### [ServerWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
+
 Download the source and build the solution. Then you can start the 
 [ServerWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
-project. The client
+project. 
+
+### [ClientWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
+
+The client
 [ClientWpfApp](https://github.com/geloczigeri/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
-will be started automatically and you can start sending in messages. 
+will be started automatically by ServerWpfApp. 
+You can send messages by typing into the textbox and pressing the *Send* button.
 
 ### References and application domains
 
