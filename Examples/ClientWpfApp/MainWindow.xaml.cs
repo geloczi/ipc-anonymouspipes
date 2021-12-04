@@ -26,22 +26,6 @@ namespace ClientWpfApp
             Client = new PipeClient();
             Client.Disconnected += PipeClient_Disconnected;
             Client.ReceiveAsync(ReceiveAction);
-
-
-            using (var Client = new PipeClient())
-            {
-                // Receiving on background thread
-                Client.ReceiveAsync(stream =>
-                {
-                    Console.WriteLine(Encoding.UTF8.GetString(stream.ReadToEnd()));
-                });
-
-                // Read line from console, press ENTER to send
-                while (Client.IsConnected)
-                    Client.Send(Encoding.UTF8.GetBytes(Console.ReadLine()));
-
-                // The Client will be disposed when the server sends a disconnect signal to this client.
-            }
         }
 
         private void PipeClient_Disconnected(object sender, EventArgs e)

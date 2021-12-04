@@ -169,6 +169,9 @@ namespace IpcAnonymousPipes
 
         #region Protected Methods
 
+        /// <summary>
+        /// Called on disposing.
+        /// </summary>
         protected abstract void OnDispose();
 
         /// <summary>
