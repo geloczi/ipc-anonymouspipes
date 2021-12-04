@@ -91,6 +91,8 @@ namespace IpcAnonymousPipes
         /// <param name="receiveAction">Method to call when data packet received</param>
         public void Receive(Action<BlockingReadStream> receiveAction)
         {
+            if (ReceiverStarted || !(_receiverThread is null))
+                throw new InvalidOperationException("Already receiving.");
             if (receiveAction is null)
                 throw new ArgumentNullException(nameof(receiveAction));
             _receiveAction = receiveAction;
@@ -106,8 +108,8 @@ namespace IpcAnonymousPipes
         /// <param name="receiveAction">Method to call when data packet received</param>
         public void ReceiveAsync(Action<BlockingReadStream> receiveAction)
         {
-            if (!(_receiverThread is null))
-                throw new InvalidOperationException("Server is running");
+            if (ReceiverStarted || !(_receiverThread is null))
+                throw new InvalidOperationException("Already receiving.");
             if (receiveAction is null)
                 throw new ArgumentNullException(nameof(receiveAction));
             _receiveAction = receiveAction;

@@ -1,12 +1,60 @@
 ﻿using System;
 using System.Threading;
+using IpcAnonymousPipes.Tests.Mocks;
+using IpcAnonymousPipes.Tests.Utils;
 using NUnit.Framework;
 
 namespace IpcAnonymousPipes.Tests
 {
     [NonParallelizable]
-    public class PipeServerTest
+    public class PipeServerTest : PipeTestBase
     {
+        [Test]
+        [NonParallelizable]
+        public void SendLongStream()
+        {
+            long dataLength = ((long)int.MaxValue) + 1;
+            using (var server = new PipeServer(false))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
+            {
+                server.WaitForClient();
+                server.ReceiveAsync(s =>
+                {
+                    Assert.AreEqual(s.Length, dataLength);
+                    ReadStreamAssertLastByte(s, 255);
+                });
+
+                // Send long stream
+                using (var stream = new ReadNothingStream(dataLength))
+                    client.Send(stream);
+
+                server.WaitForTransmissionEnd();
+            }
+        }
+
+        [Test]
+        [NonParallelizable]
+        public void SendLongStream2()
+        {
+            long dataLength = ((long)int.MaxValue) + 1;
+            using (var server = new PipeServer(false))
+            using (var client = new PipeClient(server.ClientInputHandle, server.ClientOutputHandle))
+            {
+                server.ReceiveAsync(s =>
+                {
+                    Assert.AreEqual(s.Length, dataLength);
+                    ReadStreamAssertLastByte(s, 255);
+                });
+                server.WaitForClient();
+
+                // Client sends long stream
+                using (var stream = new ReadNothingStream(dataLength))
+                    client.Send(stream);
+
+                server.WaitForTransmissionEnd();
+            }
+        }
+
         [Test]
         [NonParallelizable]
         public void SimplexServerToClient()
@@ -20,7 +68,7 @@ namespace IpcAnonymousPipes.Tests
                     received = s.ReadToEnd();
                 });
 
-                // Calling client.RunAsync is not necessary in simplex communication.
+                // Calling server.RunAsync is not necessary in simplex communication.
                 server.WaitForClient();
                 server.Send(new byte[] { 255 });
             }

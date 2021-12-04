@@ -14,6 +14,7 @@ namespace IpcAnonymousPipes
         private readonly bool _disposeLocalCopyOfHandlesAfterClientConnected;
         private readonly AnonymousPipeServerStream _inPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         private readonly AnonymousPipeServerStream _outPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
+        private bool _connectByteArrived;
 
         /// <summary>
         /// This is "PipeDirection.Out" for the client
@@ -63,19 +64,23 @@ namespace IpcAnonymousPipes
 
         private bool ReadConnectByte()
         {
-            // Read control byte from the client
-            // Blocks the thread until a control byte arrives
-            int control = _inPipe.ReadByte();
-
-            // Client sent something, so we can dispose our local copy of the handles now
-            if (_disposeLocalCopyOfHandlesAfterClientConnected)
+            if (!_connectByteArrived)
             {
-                _inPipe.DisposeLocalCopyOfClientHandle();
-                _outPipe.DisposeLocalCopyOfClientHandle();
-            }
+                // Read control byte from the client
+                // Blocks the thread until a control byte arrives
+                int control = _inPipe.ReadByte();
+                _connectByteArrived = true;
 
-            // A connect byte is expected
-            IsConnected = control == ControlByte.Connect;
+                // Client sent something, so we can dispose our local copy of the handles now
+                if (_disposeLocalCopyOfHandlesAfterClientConnected)
+                {
+                    _inPipe.DisposeLocalCopyOfClientHandle();
+                    _outPipe.DisposeLocalCopyOfClientHandle();
+                }
+
+                // A connect byte is expected
+                IsConnected = control == ControlByte.Connect;
+            }
             return IsConnected;
         }
 
