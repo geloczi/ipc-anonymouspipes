@@ -8,12 +8,9 @@ namespace IpcAnonymousPipes
     /// <summary>
     /// PipeCommon
     /// </summary>
-    public abstract class PipeCommon
+    public abstract class PipeCommon : IDisposable
     {
-        #region Fields
-        private int _controlByte = 0;
-        private bool _isSending;
-        private Thread _receiverThread;
+        #region Constants
 
         /// <summary>
         /// Input pipe handle command line argument prefix.
@@ -25,23 +22,28 @@ namespace IpcAnonymousPipes
         /// </summary>
         protected const string OutPipeHandleArg = "--OutPipeHandle=";
 
+        #endregion Constants
+
+        #region Fields
+
+        private int _controlByte;
+        private bool _isSending;
+        private Thread _receiverThread;
+
         /// <summary>
         /// Synchronization object
         /// </summary>
         protected readonly object _syncRoot = new object();
 
         /// <summary>
-        /// Disposed
-        /// </summary>
-        protected bool _disposed;
-
-        /// <summary>
         /// Method to call when data packet received
         /// </summary>
         protected Action<BlockingReadStream> _receiveAction;
+
         #endregion Fields
 
         #region Events
+
         /// <summary>
         /// Raised when an error occured.
         /// </summary>
@@ -56,16 +58,23 @@ namespace IpcAnonymousPipes
         /// Raised when disconnected.
         /// </summary>
         public event EventHandler Disconnected;
+
         #endregion Events
 
         #region Properties
+
+        /// <summary>
+        /// Disposed
+        /// </summary>
+        public bool IsDisposed { get; private set; }
+
         private bool _isConnected;
         /// <summary>
         /// Indicates wether this pipe is connected or not.
         /// </summary>
         public bool IsConnected
         {
-            get => _isConnected && !_disposed;
+            get => _isConnected && !IsDisposed;
             protected set
             {
                 if (_isConnected != value)
@@ -83,9 +92,29 @@ namespace IpcAnonymousPipes
         /// Indicates wether the receiver loop started or not.
         /// </summary>
         protected bool ReceiverStarted { get; private set; }
+
         #endregion Properties
 
         #region Public Methods
+
+        /// <summary>
+        /// Sends the specified byte array into the pipe.
+        /// </summary>
+        /// <param name="data"></param>
+        public abstract void Send(byte[] data);
+
+        /// <summary>
+        /// Sends the specified stream into the pipe.
+        /// </summary>
+        /// <param name="stream"></param>
+        public abstract void Send(Stream stream);
+
+        /// <summary>
+        /// Blocks the calling thread until all data transmission finishes.
+        ///  With this method, you can ensure that all data have arrived before disposing the pipe.
+        /// </summary>
+        public abstract void WaitForTransmissionEnd();
+
         /// <summary>
         /// Run
         /// </summary>
@@ -126,25 +155,21 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Sends the specified byte array into the pipe.
+        /// Disposes this instance.
         /// </summary>
-        /// <param name="data"></param>
-        public abstract void Send(byte[] data);
+        public void Dispose()
+        {
+            if (IsDisposed)
+                return;
+            OnDispose();
+            IsDisposed = true;
+        }
 
-        /// <summary>
-        /// Sends the specified stream into the pipe.
-        /// </summary>
-        /// <param name="stream"></param>
-        public abstract void Send(Stream stream);
-
-        /// <summary>
-        /// Blocks the calling thread until all data transmission finishes.
-        ///  With this method, you can ensure that all data have arrived before disposing the pipe.
-        /// </summary>
-        public abstract void WaitForTransmissionEnd();
         #endregion Public Methods
 
         #region Protected Methods
+
+        protected abstract void OnDispose();
 
         /// <summary>
         /// The receiver method.
@@ -275,7 +300,7 @@ namespace IpcAnonymousPipes
             try
             {
                 var buffer = new byte[4096];
-                while (!_disposed && pipe.IsConnected)
+                while (!IsDisposed && pipe.IsConnected)
                 {
                     _controlByte = pipe.ReadByte();
                     if (_controlByte < 0 || _controlByte == ControlByte.Disconnect)
@@ -333,14 +358,16 @@ namespace IpcAnonymousPipes
         /// <exception cref="IOException"></exception>
         protected void Ensure()
         {
-            if (_disposed)
+            if (IsDisposed)
                 throw new ObjectDisposedException(GetType().FullName);
             if (!PipesAreConnected())
                 throw new IOException("Pipes are broken.");
         }
+
         #endregion Protected Methods
 
         #region Private Methods
+
         private void RaiseConnected()
         {
             if (!(Connected is null))
@@ -371,9 +398,11 @@ namespace IpcAnonymousPipes
                 count -= read;
             }
         }
+
         #endregion Private Methods
 
         #region Classes
+
         /// <summary>
         /// Message header is a control byte which defines the current operation.
         /// </summary>
@@ -392,9 +421,9 @@ namespace IpcAnonymousPipes
             /// <summary>
             /// Data packet is being sent.
             /// </summary>
-            public const byte Data = 100;
+            public const byte Data = 3;
         }
-        #endregion
 
+        #endregion
     }
 }

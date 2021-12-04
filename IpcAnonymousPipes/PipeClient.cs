@@ -9,10 +9,16 @@ namespace IpcAnonymousPipes
     /// <summary>
     /// IPC client
     /// </summary>
-    public class PipeClient : PipeCommon, IDisposable
+    public class PipeClient : PipeCommon
     {
+        #region Fields
+
         private readonly AnonymousPipeClientStream _inPipe;
         private readonly AnonymousPipeClientStream _outPipe;
+
+        #endregion Fields
+
+        #region Constructor
 
         /// <summary>
         /// Creates a new instance of PipeClient.
@@ -37,6 +43,10 @@ namespace IpcAnonymousPipes
             : this(ParseCommandLineArg(InPipeHandleArg), ParseCommandLineArg(OutPipeHandleArg))
         {
         }
+
+        #endregion Constructor
+
+        #region Public Methods
 
         /// <summary>
         /// Sends bytes to the pipe
@@ -72,23 +82,16 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Disposes this instance
         /// </summary>
-        public void Dispose()
+        protected override void OnDispose()
         {
-            if (_disposed)
-                return;
-            _disposed = true;
-            try
-            {
-                SendDisconnect(_outPipe);
-            }
-            catch { }
-            try
-            {
-                _inPipe.Dispose();
-                _outPipe.Dispose();
-            }
-            catch { }
+            try { SendDisconnect(_outPipe); } catch { }
+            try { _inPipe.Dispose(); } catch { }
+            try { _outPipe.Dispose(); } catch { }
         }
+
+        #endregion Public Methods
+
+        #region Protected methods
 
         /// <summary>
         /// Checks connection.
@@ -108,6 +111,10 @@ namespace IpcAnonymousPipes
             ReceiverLoop(_inPipe);
         }
 
+        #endregion Protected methods
+
+        #region Private methods
+
         private static string ParseCommandLineArg(string prefix)
         {
             try
@@ -121,5 +128,7 @@ namespace IpcAnonymousPipes
                 throw new ArgumentException($"Cannot parse command line argument: {prefix}");
             }
         }
+
+        #endregion Private methods
     }
 }

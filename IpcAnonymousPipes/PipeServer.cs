@@ -9,12 +9,18 @@ namespace IpcAnonymousPipes
     /// <summary>
     /// IPC server
     /// </summary>
-    public class PipeServer : PipeCommon, IDisposable
+    public class PipeServer : PipeCommon
     {
+        #region Fields
+
         private readonly bool _disposeLocalCopyOfHandlesAfterClientConnected;
         private readonly AnonymousPipeServerStream _inPipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         private readonly AnonymousPipeServerStream _outPipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.Inheritable);
         private bool _connectByteArrived;
+
+        #endregion Fields
+
+        #region Properties
 
         /// <summary>
         /// This is "PipeDirection.Out" for the client
@@ -25,6 +31,10 @@ namespace IpcAnonymousPipes
         /// This is "PipeDirection.In" for the client
         /// </summary>
         public string ClientInputHandle { get; }
+
+        #endregion Properties
+
+        #region Constructor
 
         /// <summary>
         /// Creates a server instance
@@ -45,6 +55,10 @@ namespace IpcAnonymousPipes
             // At this point, the pipe exists and the client side can connect with the handles
         }
 
+        #endregion Constructor
+
+        #region Public Methods
+
         /// <summary>
         /// Gets the command line arguments to pass to the client process.
         /// </summary>
@@ -52,45 +66,7 @@ namespace IpcAnonymousPipes
         public string GetClientArgs() => $"{InPipeHandleArg}{ClientInputHandle} {OutPipeHandleArg}{ClientOutputHandle}";
 
         /// <summary>
-        /// Runs the messaging on the current thread, so blocks until the pipe is closed.
-        /// </summary>
-        protected override void ReceiveInternal()
-        {
-            if (ReadConnectByte())
-            {
-                ReceiverLoop(_inPipe);
-            }
-            else
-            {
-                // Somwething went wrong and the pipe cannot be used, so dispose it
-                Dispose();
-            }
-        }
-
-        private bool ReadConnectByte()
-        {
-            if (!_connectByteArrived)
-            {
-                // Read control byte from the client
-                // Blocks the thread until a control byte arrives
-                int control = _inPipe.ReadByte();
-                _connectByteArrived = true;
-
-                // Client sent something, so we can dispose our local copy of the handles now
-                if (_disposeLocalCopyOfHandlesAfterClientConnected)
-                {
-                    _inPipe.DisposeLocalCopyOfClientHandle();
-                    _outPipe.DisposeLocalCopyOfClientHandle();
-                }
-
-                // A connect byte is expected
-                IsConnected = control == ControlByte.Connect;
-            }
-            return IsConnected;
-        }
-
-        /// <summary>
-        /// Sends bytes to the pipe
+        /// Sends bytes to the pipe.
         /// </summary>
         /// <param name="data"></param>
         public override void Send(byte[] data)
@@ -99,7 +75,7 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Sends bytes to the pipe
+        /// Sends bytes to the pipe.
         /// </summary>
         /// <param name="stream"></param>
         public override void Send(Stream stream)
@@ -153,7 +129,7 @@ namespace IpcAnonymousPipes
             {
                 var sw = new Stopwatch();
                 sw.Start();
-                while (!IsConnected && !_disposed)
+                while (!IsConnected)
                 {
                     if (timeout != TimeSpan.Zero && sw.Elapsed >= timeout)
                         throw new TimeoutException("Pipe client failed to connect within the specified amount of time.");
@@ -174,33 +150,26 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Disposes this instance
         /// </summary>
-        public void Dispose()
+        protected override void OnDispose()
         {
-            if (_disposed)
-                return;
-            _disposed = true;
-
             // Try to send a disconnect message. This might fail if the pipe is already broken.
-            try { SendDisconnect(_outPipe); }
-            catch { }
+            try { SendDisconnect(_outPipe); } catch { }
 
             if (!_disposeLocalCopyOfHandlesAfterClientConnected)
             {
                 // Dispose local copy of client handles. 
                 // These might fail if the client lived in the same Process (unit tests for example), so disposing the client disposed the handle already.
-                try { _inPipe.DisposeLocalCopyOfClientHandle(); }
-                catch { }
-                try { _outPipe.DisposeLocalCopyOfClientHandle(); }
-                catch { }
+                try { _inPipe.DisposeLocalCopyOfClientHandle(); } catch { }
+                try { _outPipe.DisposeLocalCopyOfClientHandle(); } catch { }
             }
 
-            try
-            {
-                _inPipe.Dispose();
-                _outPipe.Dispose();
-            }
-            catch { }
+            try { _inPipe.Dispose(); } catch { }
+            try { _outPipe.Dispose(); } catch { }
         }
+
+        #endregion Public Methods
+
+        #region Protected methods
 
         /// <summary>
         /// Checks connection.
@@ -211,5 +180,48 @@ namespace IpcAnonymousPipes
             return _inPipe?.IsConnected == true && _outPipe?.IsConnected == true;
         }
 
+        /// <summary>
+        /// Runs the messaging on the current thread, so blocks until the pipe is closed.
+        /// </summary>
+        protected override void ReceiveInternal()
+        {
+            if (ReadConnectByte())
+            {
+                ReceiverLoop(_inPipe);
+            }
+            else
+            {
+                // Somwething went wrong and the pipe cannot be used, so dispose it
+                Dispose();
+            }
+        }
+
+        #endregion Protected methods
+
+        #region Private methods
+
+        private bool ReadConnectByte()
+        {
+            if (!_connectByteArrived)
+            {
+                // Read control byte from the client
+                // Blocks the thread until a control byte arrives
+                int control = _inPipe.ReadByte();
+                _connectByteArrived = true;
+
+                // Client sent something, so we can dispose our local copy of the handles now
+                if (_disposeLocalCopyOfHandlesAfterClientConnected)
+                {
+                    _inPipe.DisposeLocalCopyOfClientHandle();
+                    _outPipe.DisposeLocalCopyOfClientHandle();
+                }
+
+                // A connect byte is expected
+                IsConnected = control == ControlByte.Connect;
+            }
+            return IsConnected;
+        }
+
+        #endregion Private methods
     }
 }
