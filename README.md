@@ -1,14 +1,15 @@
 # IpcAnonymousPipes
 Interprocess communication using anonymus pipes. 
-The goal of this project is to provide a simple framework to send and receive bytes using anonymus pipes.   
+The goal of this project is to provide a simple framework to send and receive byte arrays over anonymus pipes.  
+Main focus of this project is just sending and receiving byte arrays efficiently. Well tested and performance oriented while keeps it simple.  
 
 - Targets .NET Standard 2.0
 - Lightweight and easy to use
 - Client-Server architecture
 - One-to-one duplex communication
-- Message length up to Int64.MaxValue
-- Send stream or byte array
-- Can be used with any serialization library what's working with streams or byte arrays.
+- Works with simple byte arrays
+- You may use it with a serialization library of your choice
+
 
 ## Usage
 
@@ -68,6 +69,10 @@ static void Main(string[] args)
     }
 }
 ```
+
+### Object serializers and portability
+
+Do not use 
 
 ## Example applications
 

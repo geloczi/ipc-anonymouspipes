@@ -15,7 +15,7 @@ namespace IpcAnonymousPipes.Tests
         public void Read(int toRead, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
-            using (var prs = new BlockingReadStream(mock, toRead))
+            using (var prs = new PipeMessageStream(mock, toRead))
             {
                 var buffer = new byte[Math.Max(1, toRead * 2)];
                 int read = prs.Read(buffer, 0, toRead);
@@ -38,7 +38,7 @@ namespace IpcAnonymousPipes.Tests
         public void Read_ArgumentOutOfRangeException(int streamLength, int toRead)
         {
             Exception exFromRead = null;
-            using (var prs = new BlockingReadStream(new PipeStreamMock(streamLength), streamLength))
+            using (var prs = new PipeMessageStream(new PipeStreamMock(streamLength), streamLength))
             {
                 try
                 {
@@ -56,7 +56,7 @@ namespace IpcAnonymousPipes.Tests
         public void Read_EndOfStreamException()
         {
             Exception exFromRead = null;
-            using (var prs = new BlockingReadStream(new PipeStreamMock(1), 1))
+            using (var prs = new PipeMessageStream(new PipeStreamMock(1), 1))
             {
                 var buffer = new byte[1];
                 prs.Read(buffer, 0, 1);
@@ -76,7 +76,7 @@ namespace IpcAnonymousPipes.Tests
         public void Read_EndOfStreamException2()
         {
             Exception exFromRead = null;
-            using (var prs = new BlockingReadStream(new PipeStreamMock(1), 0))
+            using (var prs = new PipeMessageStream(new PipeStreamMock(1), 0))
             {
                 try
                 {
@@ -101,7 +101,7 @@ namespace IpcAnonymousPipes.Tests
         public void ReadToEnd(int readToEndFrom, int count, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
-            using (var prs = new BlockingReadStream(mock, count))
+            using (var prs = new PipeMessageStream(mock, count))
             {
                 byte runningValueStart = 0;
 
@@ -137,7 +137,7 @@ namespace IpcAnonymousPipes.Tests
         public void ReadToEndDropBytes(int readToEndFrom, int count, int maxBytesToRead)
         {
             using (var mock = new PipeStreamMock(maxBytesToRead))
-            using (var prs = new BlockingReadStream(mock, count))
+            using (var prs = new PipeMessageStream(mock, count))
             {
                 // ReadToEnd() can be called after several Read() calls, this snippet simulates this scenario.
                 if (readToEndFrom > 0)

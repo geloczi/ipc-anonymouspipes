@@ -2,7 +2,6 @@
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
-using System.Threading;
 
 namespace IpcAnonymousPipes
 {
@@ -21,10 +20,10 @@ namespace IpcAnonymousPipes
         #region Constructor
 
         /// <summary>
-        /// Creates a new instance of PipeClient.
+        /// Creates a new instance of PipeClient using the specified pipe handles.
         /// </summary>
-        /// <param name="inputPipeHandle"></param>
-        /// <param name="outputPipeHandle"></param>
+        /// <param name="inputPipeHandle">The value from PipeServer.ClientInputHandle property.</param>
+        /// <param name="outputPipeHandle">The value from PipeServer.ClientOutputHandle property.</param>
         public PipeClient(string inputPipeHandle, string outputPipeHandle)
         {
             _inPipe = new AnonymousPipeClientStream(PipeDirection.In, inputPipeHandle);
@@ -37,7 +36,7 @@ namespace IpcAnonymousPipes
         }
 
         /// <summary>
-        /// Creates a new instance of PipeClient. Parses pipe handles automatically from the command line arguments.
+        /// Creates a new instance of PipeClient using handles automatically from command line arguments. 
         /// </summary>
         public PipeClient()
             : this(ParseCommandLineArg(InPipeHandleArg), ParseCommandLineArg(OutPipeHandleArg))

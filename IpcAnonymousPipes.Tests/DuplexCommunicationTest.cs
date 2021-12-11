@@ -147,14 +147,14 @@ namespace IpcAnonymousPipes.Tests
             var serverReceived = new List<string>();
 
             // Local methods
-            void Server_Receive(BlockingReadStream stream)
+            void Server_Receive(PipeMessageStream stream)
             {
                 if (!(options.ServerReceiveHook is null))
                     options.ServerReceiveHook();
                 string text = Encoding.UTF8.GetString(stream.ReadToEnd());
                 serverReceived.Add(text);
             }
-            void Client_Receive(BlockingReadStream stream)
+            void Client_Receive(PipeMessageStream stream)
             {
                 if (!(options.ClientReceiveHook is null))
                     options.ClientReceiveHook();

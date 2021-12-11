@@ -38,7 +38,7 @@ namespace IpcAnonymousPipes
         /// <summary>
         /// Method to call when data packet received
         /// </summary>
-        protected Action<BlockingReadStream> _receiveAction;
+        protected Action<PipeMessageStream> _receiveAction;
 
         #endregion Fields
 
@@ -119,7 +119,7 @@ namespace IpcAnonymousPipes
         /// Run
         /// </summary>
         /// <param name="receiveAction">Method to call when data packet received</param>
-        public void Receive(Action<BlockingReadStream> receiveAction)
+        public void Receive(Action<PipeMessageStream> receiveAction)
         {
             if (ReceiverStarted || !(_receiverThread is null))
                 throw new InvalidOperationException("Already receiving.");
@@ -136,7 +136,7 @@ namespace IpcAnonymousPipes
         /// RunAsync
         /// </summary>
         /// <param name="receiveAction">Method to call when data packet received</param>
-        public void ReceiveAsync(Action<BlockingReadStream> receiveAction)
+        public void ReceiveAsync(Action<PipeMessageStream> receiveAction)
         {
             if (ReceiverStarted || !(_receiverThread is null))
                 throw new InvalidOperationException("Already receiving.");
@@ -318,7 +318,7 @@ namespace IpcAnonymousPipes
                         long length = BitConverter.ToInt64(buffer, 0);
 
                         // Read data bytes
-                        var blockingReadStream = new BlockingReadStream(pipe, length);
+                        var blockingReadStream = new PipeMessageStream(pipe, length);
                         if (!(_receiveAction is null))
                         {
                             // The receive action will perform the read operation using the BlockingReadStream which wraps around our pipe.

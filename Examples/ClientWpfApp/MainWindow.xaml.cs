@@ -38,7 +38,7 @@ namespace ClientWpfApp
             Client.Dispose();
         }
 
-        private void ReceiveAction(BlockingReadStream stream)
+        private void ReceiveAction(PipeMessageStream stream)
         {
             string text = Encoding.UTF8.GetString(stream.ReadToEnd());
             Application.Current.Dispatcher.Invoke(() => log.AppendText(text + "\n"));

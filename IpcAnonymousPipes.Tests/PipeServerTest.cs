@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading;
-using IpcAnonymousPipes.Tests.Mocks;
 using IpcAnonymousPipes.Tests.Utils;
 using NUnit.Framework;
 

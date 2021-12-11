@@ -6,7 +6,7 @@ namespace IpcAnonymousPipes
     /// <summary>
     /// Wraps a stream and provides blocking read operation.
     /// </summary>
-    public class BlockingReadStream : Stream
+    public class PipeMessageStream : Stream
     {
         private long _position;
         private readonly Stream _stream;
@@ -51,7 +51,7 @@ namespace IpcAnonymousPipes
         /// <param name="stream">The underlying stream</param>
         /// <param name="length">Length of the data.</param>
         /// <exception cref="ArgumentException"></exception>
-        public BlockingReadStream(Stream stream, long length)
+        public PipeMessageStream(Stream stream, long length)
         {
             if (stream is null)
                 throw new ArgumentNullException(nameof(stream));
