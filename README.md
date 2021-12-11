@@ -2,8 +2,8 @@
 Interprocess communication using anonymus pipes. 
 The goal of this project is to provide a simple framework to send and receive byte arrays over 
 anonymus pipes efficiently.  
-You may use a serialization library of your choice on top of this project to implement messaging 
-like [IpcAnonymousPipes.Json](https://github.com/geloczigeri/ipc-anonymouspipes-json) which is built 
+You may use a **serialization library of your choice** on top of this project to implement messaging 
+**like [IpcAnonymousPipes.Json](https://github.com/geloczigeri/ipc-anonymouspipes-json)** which is built 
 on top of this library to extend it with serialization/deserialization of objects.  
 
 - Targets .NET Standard 2.0
