@@ -6,13 +6,13 @@
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<PackageProjectUrl>https://github.com/geloczigeri/ipc-anonymouspipes</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/geloczigeri/ipc-anonymouspipes</RepositoryUrl>
-		<PackageTags>ipc;pipes;anonymuspipes;interprocesscommunication</PackageTags>
+		<PackageTags>ipc;pipes</PackageTags>
 		<Title>IpcAnonymousPipes</Title>
 		<Authors>Gergő Gelóczi</Authors>
-		<Description>Lightweight library for duplex interprocess communication with anonymus pipes. No message length limitations. Can be used with any serialization library, since it sends/receives byte arrays.</Description>
+		<Description>Lightweight library for duplex interprocess communication with anonymus pipes. It's working with simple byte arrays, so you can use it with a serialization library of your choice.</Description>
 		<Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageVersion>1.2.0</PackageVersion>
+		<PackageVersion>1.2.1</PackageVersion>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
