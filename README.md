@@ -1,17 +1,13 @@
 # IpcAnonymousPipes
 Interprocess communication using anonymus pipes. 
 The goal of this project is to provide a simple framework to send and receive byte arrays over 
-anonymus pipes efficiently.  
-You may use a **serialization library of your choice** on top of this project to implement messaging 
-**like [IpcAnonymousPipes.Json](https://github.com/geloczigeri/ipc-anonymouspipes-json)** which is built 
-on top of this library to extend it with serialization/deserialization of objects.  
+anonymus pipes efficiently. You may use a serialization library of your choice on top of this to implement messaging.  
 
 - Targets .NET Standard 2.0
 - Lightweight and easy to use
 - Client-Server architecture
 - One-to-one duplex communication
 - Works with simple byte arrays
-- You may use it with a serialization library of your choice
 
 
 ## Usage
@@ -72,21 +68,6 @@ static void Main(string[] args)
     }
 }
 ```
-
-### Object serializers and portability
-
-So the PipeClient runs in a standalone Process (most of the time this is the use case). In order 
-to send an object, you have to serialize it to bytes and deserialize it on the other end of the 
-pipe to the proper type. Somehow you gotta know the type of the object coming into your pipe.  
-
-If you're about to implement **simple messaging (sending and receiving objects)**, you may want to 
-**automatically deserialize** the received data **to the type it was** before serialization. One 
-possibility is to serialize it to a format which contains type information which does not refers 
-the origin assembly, so it remains portable.  
-
-Check out my other project 
-**[IpcAnonymousPipes.Json](https://github.com/geloczigeri/ipc-anonymouspipes-json)** 
-which uses JSON format with type names to solve this problem. 
 
 ## Example applications
 
