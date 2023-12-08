@@ -12,7 +12,7 @@
 		<Description>Lightweight library for duplex interprocess communication with anonymus pipes. It's working with simple byte arrays, so you can use it with a serialization library of your choice.</Description>
 		<Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageVersion>1.2.2</PackageVersion>
+		<PackageVersion>1.2.3</PackageVersion>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
