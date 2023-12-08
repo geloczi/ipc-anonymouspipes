@@ -4,8 +4,8 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<PackageProjectUrl>https://github.com/geloczigeri/ipc-anonymouspipes</PackageProjectUrl>
-		<RepositoryUrl>https://github.com/geloczigeri/ipc-anonymouspipes</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/geloczi/ipc-anonymouspipes</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/geloczi/ipc-anonymouspipes</RepositoryUrl>
 		<PackageTags>ipc;pipes</PackageTags>
 		<Title>IpcAnonymousPipes</Title>
 		<Authors>Gergő Gelóczi</Authors>
