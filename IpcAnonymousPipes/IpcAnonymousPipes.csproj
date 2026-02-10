@@ -10,9 +10,9 @@
 		<Title>IpcAnonymousPipes</Title>
 		<Authors>Gergő Gelóczi</Authors>
 		<Description>Lightweight library for duplex interprocess communication with anonymus pipes. It's working with simple byte arrays, so you can use it with a serialization library of your choice.</Description>
-		<Copyright>Copyright (c) Gergő Gelóczi 2021</Copyright>
+		<Copyright>Copyright (c) Gergő Gelóczi 2026</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<PackageVersion>1.2.3</PackageVersion>
+		<PackageVersion>1.2.4</PackageVersion>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 

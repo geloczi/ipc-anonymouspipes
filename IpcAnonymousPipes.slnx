@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Examples/">
+    <Project Path="Examples/ClientWpfApp/ClientWpfApp.csproj" />
+    <Project Path="Examples/ServerWpfApp/ServerWpfApp.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="IpcAnonymousPipes.Tests/IpcAnonymousPipes.Tests.csproj" />
+  <Project Path="IpcAnonymousPipes/IpcAnonymousPipes.csproj" />
+</Solution>

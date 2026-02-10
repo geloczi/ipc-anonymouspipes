@@ -79,12 +79,12 @@ I wrote them in order to demonstrate the **two-way communication** between the s
 Download the source and build the solution. Then you can start the 
 [ServerWpfApp](https://github.com/geloczi/ipc-anonymouspipes/tree/main/Examples/ServerWpfApp)
 project.  
-The ServerWpfApp project **does not reference ClientWpfApp** project, they are completely independent from each other.
-My goal was to run the client inside a **standalone process**, so it **lives in it's own Application Domain**. 
+The ServerWpfApp will start the **ClientWpfApp**, and connect via an anonymus pipe to each other.  
+You can send messages by typing into the textbox and pressing the *Send* button.  
 
 ### [ClientWpfApp](https://github.com/geloczi/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
 
 The client
 [ClientWpfApp](https://github.com/geloczi/ipc-anonymouspipes/tree/main/Examples/ClientWpfApp)
 will be started automatically by ServerWpfApp. 
-You can send messages by typing into the textbox and pressing the *Send* button.
+You can send messages by typing into the textbox and pressing the *Send* button.  

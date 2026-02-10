@@ -12,13 +12,6 @@ namespace ServerWpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
-        // ServerWpfApp project does not reference ClientWpfApp. This is just to demonstrate they are totally independent in 2 different AppDomains.
-#if DEBUG
-        const string ClientWpfAppPath = @"..\..\..\..\ClientWpfApp\bin\Debug\netcoreapp3.1\ClientWpfApp.exe";
-#else
-        const string ClientWpfAppPath = @"..\..\..\..\ClientWpfApp\bin\Release\netcoreapp3.1\ClientWpfApp.exe";
-#endif
-
         PipeServer Server { get; }
 
         public MainWindow()
@@ -27,7 +20,8 @@ namespace ServerWpfApp
             Closed += MainWindow_Closed;
             IsEnabled = false;
 
-            if (File.Exists(ClientWpfAppPath))
+            var clientExe = new FileInfo("ClientWpfApp.exe");
+            if (clientExe.Exists)
             {
                 // Create pipe server
                 Server = new PipeServer();
@@ -35,7 +29,7 @@ namespace ServerWpfApp
                 Server.Disconnected += PipeServer_Disconnected;
 
                 // Start client process with command line arguments
-                Process.Start(ClientWpfAppPath, Server.GetClientArgs());
+                Process.Start(clientExe.FullName, Server.GetClientArgs());
 
                 // Receiving on background thread
                 Server.ReceiveAsync(stream =>
